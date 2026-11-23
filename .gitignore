@@ -22,3 +22,11 @@ Thumbs.db
 *.pptx
 *.docx
 *.pdf
+
+# Internal agent prompts, specifications, and scratch files
+Smartventory_*_Guide.md
+Smartventory_*_Spec.md
+Smartventory_*_Prompt*.md
+Smartventory_*_Handoff.md
+Untitled diagram*
+SmartVentory/
