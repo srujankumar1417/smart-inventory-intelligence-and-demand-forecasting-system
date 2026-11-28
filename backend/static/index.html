@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smartventory — Inventory Intelligence for Retail Shops</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
+
+  <style>
+    :root {
+      --bg-canvas: #F7F9FC;
+      --bg-surface: #FFFFFF;
+      --bg-subtle: #F1F5F9;
+      --bg-active-nav: #EFF6FF;
+      --primary: #2563EB;
+      --primary-hover: #1D4ED8;
+      --accent-tint: rgba(37, 99, 235, 0.08);
+      --ink-primary: #0F172A;
+      --ink-secondary: #475569;
+      --ink-muted: #64748B;
+      --border-hairline: rgba(15, 23, 42, 0.08);
+      --border-hover: rgba(15, 23, 42, 0.16);
+      --success: #16A34A;
+      --warning: #D97706;
+      --critical: #DC2626;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-card: 10px;
+      --radius-pill: 9999px;
+      --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
+      --shadow-popover: 0 4px 16px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04);
+      --sidebar-width: 232px;
+      --transition-fast: 150ms ease;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--ink-primary);
+      background-color: var(--bg-canvas);
+      -webkit-font-smoothing: antialiased;
+      font-variant-numeric: tabular-nums;
+    }
+
+    body { min-height: 100vh; background-color: var(--bg-canvas); color: var(--ink-primary); overflow-x: hidden; }
+    .num, td, th, input[type="number"], .kpi-value, .metric-val { font-variant-numeric: tabular-nums; }
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
+    button { cursor: pointer; border: none; background: transparent; transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast); }
+    button:active:not(:disabled) { transform: scale(0.99); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .visually-hidden:where(:not(:focus-within, :active)) {
+      position: absolute !important;
+      clip-path: inset(50%) !important;
+      overflow: hidden !important;
+      width: 1px !important;
+      height: 1px !important;
+      margin: -1px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    .page-title { font-size: 25px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.25; color: var(--ink-primary); }
+    .page-subtitle { font-size: 14px; color: var(--ink-secondary); margin-top: 4px; }
+    .section-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: var(--ink-primary); }
+    .card-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink-primary); }
+    .card-subtitle { font-size: 13px; color: var(--ink-muted); margin-top: 2px; }
+    .eyebrow { font-size: 12px; font-weight: 500; color: var(--ink-muted); letter-spacing: 0.01em; }
+    .kpi-value { font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; color: var(--ink-primary); }
+
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink-primary); user-select: none; }
+    .brand-mark { width: 28px; height: 28px; border-radius: 7px; background-color: var(--primary); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .brand-name { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+
+    .card { background-color: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: var(--radius-card); padding: 24px; box-shadow: var(--shadow-card); }
+    .card-compact { padding: 20px; }
+    .surface-critical { border-left: 3px solid var(--critical); background-color: color-mix(in srgb, var(--critical) 7%, #FFFFFF); }
+    .surface-warning { border-left: 3px solid var(--warning); background-color: color-mix(in srgb, var(--warning) 7%, #FFFFFF); }
+    .surface-success { border-left: 3px solid var(--success); background-color: color-mix(in srgb, var(--success) 7%, #FFFFFF); }
+    .surface-info { border-left: 3px solid var(--primary); background-color: color-mix(in srgb, var(--primary) 6%, #FFFFFF); }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; line-height: 1; white-space: nowrap; border: 1px solid transparent; }
+    .btn-sm { height: 34px; padding: 0 12px; font-size: 13px; }
+    .btn-primary { background-color: var(--primary); color: #FFFFFF; }
+    .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); }
+    .btn-secondary { background-color: var(--bg-surface); color: var(--ink-primary); border-color: var(--border-hairline); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--border-hover); background-color: #FAFBFD; }
+    .btn-danger-outline { background-color: var(--bg-surface); color: var(--critical); border-color: color-mix(in srgb, var(--critical) 28%, transparent); }
+    .btn-danger-outline:hover:not(:disabled) { background-color: color-mix(in srgb, var(--critical) 6%, #FFFFFF); border-color: color-mix(in srgb, var(--critical) 45%, transparent); }
+    .btn-link { height: auto; padding: 2px 0; color: var(--primary); font-weight: 500; font-size: 14px; }
+    .btn-link:hover { color: var(--primary-hover); text-decoration: underline; text-underline-offset: 3px; }
+
+    .input, .select { height: 38px; padding: 0 12px; background-color: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: var(--radius-md); font-size: 14px; color: var(--ink-primary); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
+    .input:hover, .select:hover { border-color: var(--border-hover); }
+    .input:focus, .select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--accent-tint); }
+    :is(.input:user-invalid, .input.user-invalid-fallback) { border-color: var(--critical); box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
+    .field-error-msg { display: none; font-size: 12px; color: #B91C1C; margin-top: 4px; }
+    :is(.input:user-invalid, .input.user-invalid-fallback) ~ .field-error-msg,
+    .field-error-msg.is-shown { display: block; }
+
+    .select { padding-right: 32px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; cursor: pointer; }
+
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; line-height: 1.2; white-space: nowrap; border: 1px solid var(--border-hairline); background-color: var(--bg-surface); color: var(--ink-secondary); }
+    .pill-demo { background-color: var(--bg-active-nav); border-color: rgba(37, 99, 235, 0.2); color: var(--primary); }
+    .pill-dot { width: 7px; height: 7px; border-radius: 50%; background-color: var(--success); flex-shrink: 0; }
+
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; line-height: 1.2; white-space: nowrap; }
+    .badge svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .badge-critical { background-color: color-mix(in srgb, var(--critical) 10%, #FFFFFF); color: #B91C1C; border: 1px solid color-mix(in srgb, var(--critical) 22%, transparent); }
+    .badge-warning { background-color: color-mix(in srgb, var(--warning) 12%, #FFFFFF); color: #B45309; border: 1px solid color-mix(in srgb, var(--warning) 24%, transparent); }
+    .badge-success { background-color: color-mix(in srgb, var(--success) 10%, #FFFFFF); color: #15803D; border: 1px solid color-mix(in srgb, var(--success) 22%, transparent); }
+    .badge-neutral { background-color: var(--bg-subtle); color: var(--ink-secondary); border: 1px solid var(--border-hairline); }
+
+    .segmented { display: inline-flex; align-items: center; background-color: var(--bg-subtle); padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--border-hairline); gap: 2px; }
+    .segmented-btn { height: 30px; padding: 0 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--ink-secondary); white-space: nowrap; }
+    .segmented-btn:hover { color: var(--ink-primary); }
+    .segmented-btn.is-active { background-color: var(--bg-surface); color: var(--ink-primary); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); }
+
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #FFFFFF; border-radius: 50%; animation: spin 650ms linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Upload View */
+    .upload-shell { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px; }
+    .upload-header { margin-bottom: 24px; text-align: center; }
+    .upload-card { width: 100%; max-width: 580px; padding: 32px; }
+    .upload-title { font-size: 24px; font-weight: 600; letter-spacing: -0.025em; color: var(--ink-primary); line-height: 1.25; }
+    .upload-desc { font-size: 14px; color: var(--ink-secondary); margin-top: 8px; line-height: 1.55; }
+    .dropzone { margin-top: 24px; border: 1.5px dashed rgba(15, 23, 42, 0.18); border-radius: var(--radius-card); background-color: #FAFBFD; padding: 32px 24px; text-align: center; transition: border-color var(--transition-fast), background-color var(--transition-fast); cursor: pointer; }
+    .dropzone:hover, .dropzone.is-dragover { border-color: var(--primary); background-color: var(--bg-active-nav); }
+    .dropzone-icon { width: 40px; height: 40px; border-radius: var(--radius-md); background-color: var(--bg-surface); border: 1px solid var(--border-hairline); display: inline-flex; align-items: center; justify-content: center; color: var(--primary); margin-bottom: 12px; }
+    .dropzone-title { font-size: 15px; font-weight: 500; color: var(--ink-primary); }
+    .dropzone-hint { font-size: 13px; color: var(--ink-muted); margin-top: 4px; margin-bottom: 16px; }
+    .required-cols { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-hairline); }
+    .required-cols-label { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .col-chip { font-size: 12px; font-weight: 500; color: var(--ink-secondary); background-color: var(--bg-subtle); border: 1px solid var(--border-hairline); padding: 4px 10px; border-radius: var(--radius-pill); }
+    .col-chip-req { border-color: rgba(37, 99, 235, 0.25); background-color: var(--bg-active-nav); color: var(--primary); }
+    .upload-error { margin-top: 16px; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, var(--critical) 20%, transparent); border-left: 3px solid var(--critical); background-color: color-mix(in srgb, var(--critical) 7%, #FFFFFF); font-size: 13px; color: #991B1B; display: flex; align-items: flex-start; gap: 10px; }
+    .upload-progress { margin-top: 16px; }
+    .progress-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-secondary); margin-bottom: 8px; }
+    .progress-track { width: 100%; height: 6px; background-color: var(--bg-subtle); border-radius: var(--radius-pill); overflow: hidden; }
+    .progress-fill { height: 100%; background-color: var(--primary); border-radius: var(--radius-pill); width: 0%; transition: width 180ms ease; }
+    .upload-footer { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-hairline); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .upload-footer-note { font-size: 13px; color: var(--ink-muted); }
+
+    /* App Shell */
+    .app-shell { display: flex; min-height: 100vh; }
+    .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background-color: var(--bg-surface); border-right: 1px solid var(--border-hairline); display: flex; flex-direction: column; padding: 20px 12px 16px; z-index: 30; }
+    .sidebar-brand { padding: 4px 10px 24px; }
+    .nav-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .nav-bottom { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border-hairline); }
+    .nav-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; color: var(--ink-secondary); text-align: left; }
+    .nav-btn svg { width: 18px; height: 18px; color: var(--ink-muted); flex-shrink: 0; }
+    .nav-btn:hover { background-color: var(--bg-canvas); color: var(--ink-primary); }
+    .nav-btn.is-active { background-color: var(--bg-active-nav); color: var(--primary); font-weight: 600; }
+    .nav-btn.is-active svg { color: var(--primary); }
+    .nav-count { margin-left: auto; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-pill); background-color: color-mix(in srgb, var(--critical) 12%, #FFFFFF); color: #B91C1C; }
+
+    .mobile-header { display: none; position: sticky; top: 0; z-index: 40; background-color: var(--bg-surface); border-bottom: 1px solid var(--border-hairline); }
+    .mobile-bar { height: 56px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; }
+    .mobile-menu-btn { width: 38px; height: 38px; border-radius: var(--radius-md); border: 1px solid var(--border-hairline); display: inline-flex; align-items: center; justify-content: center; }
+    .mobile-drawer { display: none; padding: 8px 12px 14px; border-top: 1px solid var(--border-hairline); background-color: var(--bg-surface); }
+    .mobile-drawer.is-open { display: block; }
+    .main-wrap { flex: 1; margin-left: var(--sidebar-width); min-width: 0; }
+    .main-content { max-width: 1240px; margin: 0 auto; padding: 32px 40px 56px; }
+
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    .page-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 20px; border-radius: var(--radius-card); border: 1px solid var(--border-hairline); margin-bottom: 24px; box-shadow: var(--shadow-card); }
+    .banner-left { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+    .banner-icon { margin-top: 2px; flex-shrink: 0; }
+    .banner-text { font-size: 14px; font-weight: 500; color: var(--ink-primary); line-height: 1.5; }
+    .banner-sub { font-size: 13px; color: var(--ink-secondary); margin-top: 2px; }
+
+    .grid-kpi-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .grid-kpi-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-bottom: 24px; }
+    .kpi-card { padding: 20px 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; }
+    .kpi-meta { font-size: 13px; color: var(--ink-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .delta-up { color: var(--success); font-weight: 500; }
+    .delta-down { color: var(--ink-secondary); font-weight: 500; }
+    .text-critical { color: var(--critical); }
+    .text-warning { color: #B45309; }
+    .text-success { color: var(--success); }
+    .text-muted { color: var(--ink-muted); }
+
+    .chart-card { padding: 22px 24px 16px; display: flex; flex-direction: column; }
+    .chart-header { margin-bottom: 12px; }
+    .chart-box { width: 100%; height: 270px; }
+    .chart-box-tall { width: 100%; height: 340px; }
+
+    .attention-list { margin-top: 16px; display: flex; flex-direction: column; border-top: 1px solid var(--border-hairline); }
+    .attention-row { display: grid; grid-template-columns: minmax(180px, 1.8fr) auto repeat(3, minmax(95px, 0.8fr)) 24px; align-items: center; gap: 16px; padding: 14px 12px; border-bottom: 1px solid var(--border-hairline); cursor: pointer; border-radius: var(--radius-sm); }
+    .attention-row:hover { background-color: #F8FAFC; }
+    .attention-row:last-child { border-bottom: none; }
+    .row-product-name { font-size: 14px; font-weight: 600; color: var(--ink-primary); }
+    .row-product-cat { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+    .row-stat { text-align: right; }
+    .row-stat-val { font-size: 14px; font-weight: 600; color: var(--ink-primary); }
+    .row-stat-lbl { font-size: 11px; color: var(--ink-muted); margin-top: 1px; }
+
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1; min-width: 240px; }
+    .search-wrap { position: relative; flex: 1; min-width: 210px; max-width: 320px; }
+    .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-muted); pointer-events: none; }
+    .search-wrap .input { width: 100%; padding-left: 34px; }
+
+    /* Responsive + Sortable Table (modern-web-guidance compliant) */
+    .table-card { padding: 0; overflow: hidden; margin-bottom: 24px; }
+    .table-wrapper { overflow: auto; max-inline-size: 100%; max-block-size: min(520px, 75vh); container-type: inline-size; }
+    table.data-table { width: 100%; min-inline-size: 680px; border-collapse: separate; border-spacing: 0; text-align: left; }
+    table.data-table caption { text-align: left; padding: 14px 16px 0; font-size: 13px; color: var(--ink-muted); caption-side: top; }
+    table.data-table thead { position: sticky; inset-block-start: 0; z-index: 2; }
+    table.data-table thead th { background-color: var(--bg-surface); font-size: 12px; font-weight: 500; color: var(--ink-muted); padding: 13px 16px; border-bottom: 1px solid var(--border-hairline); white-space: nowrap; }
+    table.data-table thead th:has(> button) { padding: 0; }
+    table.data-table thead th > button {
+      width: 100%; min-height: 42px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 500; color: var(--ink-muted); text-align: left;
+    }
+    table.data-table thead th.align-right > button { justify-content: flex-end; }
+    table.data-table thead th > button:hover { color: var(--ink-primary); }
+    table.data-table thead th[aria-sort] > button { color: var(--ink-primary); font-weight: 600; }
+    .sort-indicator { display: inline-flex; opacity: 0.4; transition: transform var(--transition-fast), opacity var(--transition-fast); }
+    table.data-table thead th[aria-sort] .sort-indicator { opacity: 1; color: var(--primary); }
+    table.data-table thead th[aria-sort="descending"] .sort-indicator { transform: rotate(180deg); }
+
+    table.data-table thead th.align-right,
+    table.data-table tbody td.align-right,
+    table.data-table tfoot td.align-right { text-align: right; }
+    table.data-table tbody th[scope="row"] { position: sticky; inset-inline-start: 0; background-color: var(--bg-surface); z-index: 1; font-weight: 600; padding: 13px 16px; border-bottom: 1px solid var(--border-hairline); }
+    table.data-table tbody td { font-size: 14px; padding: 13px 16px; border-bottom: 1px solid var(--border-hairline); color: var(--ink-primary); vertical-align: middle; }
+    table.data-table tbody tr:hover td,
+    table.data-table tbody tr:hover th[scope="row"] { background-color: #F8FAFC; }
+    table.data-table tbody tr:last-child td,
+    table.data-table tbody tr:last-child th[scope="row"] { border-bottom: none; }
+    table.data-table tfoot td { font-size: 14px; font-weight: 600; padding: 13px 16px; background-color: #FAFBFD; border-top: 1px solid var(--border-hairline); }
+
+    @container (width < 600px) {
+      #stockTable, #stockTable thead, #stockTable tbody, #stockTable tr, #stockTable th, #stockTable td { display: block; }
+      #stockTable { min-inline-size: 0; --label-cat: "Category"; --label-stock: "In stock"; --label-avg: "Avg. weekly sales"; --label-cover: "Stock cover"; --label-status: "Status"; }
+      #stockTable thead { display: none; }
+      #stockTable tbody tr { margin-block-end: 12px; border: 1px solid var(--border-hairline); border-radius: var(--radius-md); overflow: hidden; }
+      #stockTable tbody th[scope="row"] { position: sticky; inset-block-start: 0; z-index: 2; background: var(--bg-subtle); }
+      #stockTable tbody td { display: flex; justify-content: space-between; align-items: center; text-align: right; padding: 10px 14px; }
+      #stockTable tbody td::before { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin-right: 12px; }
+      #stockTable tbody td:nth-child(2)::before { content: var(--label-cat); }
+      #stockTable tbody td:nth-child(3)::before { content: var(--label-stock); }
+      #stockTable tbody td:nth-child(4)::before { content: var(--label-avg); }
+      #stockTable tbody td:nth-child(5)::before { content: var(--label-cover); }
+      #stockTable tbody td:nth-child(6)::before { content: var(--label-status); }
+    }
+
+    .product-link { font-weight: 600; color: var(--ink-primary); text-align: left; padding: 0; }
+    .product-link:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+    .cover-cell { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 5px; min-width: 112px; }
+    .cover-bar-track { width: 96px; height: 5px; border-radius: var(--radius-pill); background-color: var(--bg-subtle); overflow: hidden; }
+    .cover-bar-fill { height: 100%; border-radius: var(--radius-pill); }
+
+    .forecast-controls { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; padding: 20px 24px; }
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
+    .control-group label { font-size: 12px; font-weight: 500; color: var(--ink-muted); }
+    .horizon-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .custom-week-wrap { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-secondary); }
+    .custom-week-input { width: 68px; text-align: center; }
+
+    .answer-card { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; padding: 22px 24px; }
+    .answer-headline { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink-primary); line-height: 1.35; }
+    .answer-headline .highlight-num { color: var(--primary); }
+    .answer-sub { font-size: 14px; color: var(--ink-secondary); margin-top: 6px; }
+
+    .order-stack { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .order-card { padding: 20px 24px; display: grid; grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(95px, 0.7fr)); align-items: center; gap: 16px; }
+    .order-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .order-reason { font-size: 13px; color: var(--ink-secondary); margin-top: 6px; }
+    .order-metric { text-align: right; }
+    .order-metric-label { font-size: 12px; color: var(--ink-muted); margin-bottom: 3px; }
+    .order-metric-val { font-size: 16px; font-weight: 600; color: var(--ink-primary); }
+
+    .mini-list { margin-top: 12px; display: flex; flex-direction: column; }
+    .mini-list-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--border-hairline); }
+    .mini-list-item:last-child { border-bottom: none; padding-bottom: 2px; }
+
+    .settings-stack { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+    .kv-list { margin-top: 16px; border-top: 1px solid var(--border-hairline); }
+    .kv-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--border-hairline); font-size: 14px; flex-wrap: wrap; }
+    .kv-row:last-child { border-bottom: none; }
+    .kv-key { color: var(--ink-secondary); }
+    .kv-val { color: var(--ink-primary); font-weight: 500; text-align: right; }
+    .settings-actions { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-hairline); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+    details.model-details summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; user-select: none; }
+    details.model-details summary::-webkit-details-marker { display: none; }
+    details.model-details .chevron-icon { color: var(--ink-muted); transition: transform var(--transition-fast); }
+    details.model-details[open] .chevron-icon { transform: rotate(180deg); }
+    .metric-explain-grid { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border-hairline); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .metric-explain-box { padding: 14px 16px; border-radius: var(--radius-md); background-color: var(--bg-canvas); border: 1px solid var(--border-hairline); }
+    .metric-explain-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .metric-explain-val { font-size: 18px; font-weight: 600; color: var(--ink-primary); }
+    .metric-explain-desc { font-size: 13px; color: var(--ink-secondary); line-height: 1.5; }
+
+    /* Native Modal Dialog (scroll containment per modern-web-guidance) */
+    dialog.confirm-dialog {
+      margin: auto; width: calc(100% - 32px); max-width: 440px;
+      border: 1px solid var(--border-hairline); border-radius: var(--radius-card);
+      padding: 24px; background-color: var(--bg-surface);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14); color: var(--ink-primary);
+    }
+    dialog.confirm-dialog:modal { overscroll-behavior: contain; }
+    dialog.confirm-dialog::backdrop { background-color: rgba(15, 23, 42, 0.35); overflow: hidden; overscroll-behavior: contain; }
+    .dialog-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
+    .dialog-body { font-size: 14px; color: var(--ink-secondary); margin-top: 8px; line-height: 1.55; }
+    .dialog-actions { margin-top: 22px; display: flex; justify-content: flex-end; gap: 10px; }
+
+    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 60; background-color: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: var(--radius-md); padding: 12px 16px; box-shadow: var(--shadow-popover); display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; color: var(--ink-primary); max-width: 360px; }
+    .is-hidden { display: none !important; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--ink-secondary); }
+    .empty-state-title { font-size: 15px; font-weight: 600; color: var(--ink-primary); margin-bottom: 6px; }
+    .js-plotly-plot .plotly .modebar { top: 0 !important; right: 0 !important; }
+
+    @media (max-width: 1120px) {
+      .grid-kpi-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .order-card { grid-template-columns: 1fr 1fr; }
+      .order-card > :first-child { grid-column: 1 / -1; }
+      .order-metric { text-align: left; }
+    }
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .mobile-header { display: block; }
+      .app-shell { flex-direction: column; }
+      .main-wrap { margin-left: 0; }
+      .main-content { padding: 24px 20px 48px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .attention-row { grid-template-columns: 1fr auto; gap: 10px 14px; }
+      .attention-row .row-stat { text-align: left; }
+      .attention-row .row-chevron { display: none; }
+    }
+    @media (max-width: 600px) {
+      .upload-card { padding: 24px 20px; }
+      .grid-kpi-4, .grid-kpi-2, .metric-explain-grid { grid-template-columns: 1fr; }
+      .page-title { font-size: 22px; }
+      .kpi-value { font-size: 28px; }
+      .card { padding: 18px; }
+      .table-card { padding: 0; }
+      .forecast-controls, .answer-card { padding: 18px; }
+      .toast { left: 16px; right: 16px; bottom: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <section id="uploadView" class="upload-shell" aria-label="Upload inventory dataset">
+    <div class="upload-header">
+      <div class="brand" aria-label="Smartventory">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="2" y="8.5" width="3" height="5.5" rx="1" fill="#FFFFFF" fill-opacity="0.72" />
+            <rect x="6.5" y="5.5" width="3" height="8.5" rx="1" fill="#FFFFFF" fill-opacity="0.9" />
+            <rect x="11" y="2" width="3" height="12" rx="1" fill="#FFFFFF" />
+          </svg>
+        </span>
+        <span class="brand-name">Smartventory</span>
+      </div>
+    </div>
+
+    <div class="card upload-card">
+      <h1 class="upload-title">Upload Your Inventory Dataset</h1>
+      <p class="upload-desc">
+        Import your daily or weekly retail CSV to inspect stock health, Random Forest demand forecasts, calibrated uncertainty ranges, and indicative reorder suggestions.
+      </p>
+
+      <div id="csvDropzone" class="dropzone" role="button" tabindex="0" aria-label="Drag and drop CSV file or browse">
+        <div class="dropzone-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+        </div>
+        <div class="dropzone-title">Drag and drop your CSV file here</div>
+        <div class="dropzone-hint" id="dropzoneHintText">UTF-8 CSV files up to 16 MB supported</div>
+        <button type="button" id="browseCsvBtn" class="btn btn-primary btn-sm">Browse CSV file</button>
+        <input id="csvFileInput" type="file" accept=".csv,text/csv" class="is-hidden" />
+      </div>
+
+      <div id="uploadErrorBox" class="upload-error is-hidden" role="alert">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <div id="uploadErrorMsg"></div>
+      </div>
+
+      <div id="uploadProgressWrap" class="upload-progress is-hidden" aria-live="polite">
+        <div class="progress-meta">
+          <span id="uploadProgressLabel">Reading CSV file...</span>
+          <span id="uploadProgressPct" class="num">0%</span>
+        </div>
+        <div class="progress-track"><div id="uploadProgressFill" class="progress-fill"></div></div>
+      </div>
+
+      <div class="required-cols">
+        <div class="required-cols-label">
+          <span>Required for forecasting (blue) &amp; recommended for stock alerts</span>
+          <button type="button" id="downloadSampleCsvBtn" class="btn-link" style="font-size:12px;">Download sample CSV</button>
+        </div>
+        <div class="chip-group">
+          <span class="col-chip col-chip-req">Date</span>
+          <span class="col-chip col-chip-req">Product ID</span>
+          <span class="col-chip col-chip-req">Demand</span>
+          <span class="col-chip">Store ID</span>
+          <span class="col-chip">Category</span>
+          <span class="col-chip">Inventory Level</span>
+          <span class="col-chip">Units Sold</span>
+        </div>
+      </div>
+
+      <div class="upload-footer">
+        <span class="upload-footer-note">Want to explore Smartventory on the sample dataset?</span>
+        <button type="button" id="useDemoBtn" class="btn btn-secondary">Use demo data</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-shell is-hidden">
+    <header class="mobile-header">
+      <div class="mobile-bar">
+        <a href="#home" class="brand" data-nav="home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="8.5" width="3" height="5.5" rx="1" fill="#FFFFFF" fill-opacity="0.72" />
+              <rect x="6.5" y="5.5" width="3" height="8.5" rx="1" fill="#FFFFFF" fill-opacity="0.9" />
+              <rect x="11" y="2" width="3" height="12" rx="1" fill="#FFFFFF" />
+            </svg>
+          </span>
+          <span class="brand-name">Smartventory</span>
+        </a>
+        <button type="button" id="mobileMenuToggle" class="mobile-menu-btn" aria-expanded="false" aria-controls="mobileDrawer" aria-label="Toggle navigation menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
+          </svg>
+        </button>
+      </div>
+      <nav id="mobileDrawer" class="mobile-drawer" aria-label="Mobile navigation">
+        <ul class="nav-list" id="mobileNavList"></ul>
+      </nav>
+    </header>
+
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="sidebar-brand">
+        <a href="#home" class="brand" data-nav="home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="8.5" width="3" height="5.5" rx="1" fill="#FFFFFF" fill-opacity="0.72" />
+              <rect x="6.5" y="5.5" width="3" height="8.5" rx="1" fill="#FFFFFF" fill-opacity="0.9" />
+              <rect x="11" y="2" width="3" height="12" rx="1" fill="#FFFFFF" />
+            </svg>
+          </span>
+          <span class="brand-name">Smartventory</span>
+        </a>
+      </div>
+      <nav aria-label="Main sections" style="flex:1;display:flex;flex-direction:column;">
+        <ul class="nav-list" id="desktopNavPrimary"></ul>
+        <div class="nav-bottom"><ul class="nav-list" id="desktopNavBottom"></ul></div>
+      </nav>
+    </aside>
+
+    <div class="main-wrap">
+      <main id="mainContent" class="main-content" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <!-- Native Confirmation Dialog (modern-web-guidance compliant) -->
+  <dialog id="resetDialog" class="confirm-dialog" closedby="any" aria-labelledby="resetDialogTitle">
+    <h1 id="resetDialogTitle" class="dialog-title">Reset Smartventory dashboard?</h1>
+    <p class="dialog-body">
+      This will clear the currently loaded inventory dataset and return you to the upload screen. You can load demo data or upload a CSV again at any time.
+    </p>
+    <form method="dialog" class="dialog-actions">
+      <button type="submit" value="cancel" id="cancelResetBtn" class="btn btn-secondary" autofocus>Cancel</button>
+      <button type="submit" value="confirm" id="confirmResetBtn" class="btn btn-primary" style="background-color:var(--critical);">Reset dashboard</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast is-hidden" role="status" aria-live="polite">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+    <span id="toastText"></span>
+  </div>
+
+  <div id="liveAnnouncer" class="visually-hidden" aria-live="polite"></div>
+
+  <script>
+    const API_BASE = {
+      BASE_URL: window.location.protocol === 'file:' ? '' : window.location.origin,
+      ENDPOINTS: {
+        ANALYZE: '/api/analyze',
+        FORECAST: '/api/forecast',
+        RECOMMENDATIONS: '/api/recommendations'
+      }
+    };
+
+    const MAX_HORIZON_WEEKS = 12;
+    const THRESHOLDS = { ORDER_NOW_DAYS: 7, ORDER_SOON_DAYS: 14, EXCESS_DAYS: 45 };
+
+    // Offline fallback mock data (only used when opened directly via file:// without Flask)
+    const OFFLINE_DEMO = {
+      status: 'success',
+      dataset_id: null,
+      meta: {
+        file_name: 'offline_demo_12w.csv',
+        source: 'offline_demo',
+        uploaded_at: '2026-11-26',
+        total_rows: 360,
+        total_columns: 7,
+        unique_products: 10,
+        unique_stores: 3,
+        weekly_records: 120,
+        unique_weeks: 12,
+        week_start: '2026-09-06',
+        week_end: '2026-11-22',
+        first_week_days: 7,
+        last_week_days: 7,
+        has_partial_weeks: false,
+        latest_snapshot_date: '2026-11-22',
+        has_inventory_data: true,
+        verified_opening_stock_semantics: true,
+        has_unit_cost: true,
+        warnings: ['Running in offline preview mode without Flask backend.'],
+        model_info: {
+          algorithm: 'Offline Weighted Moving Heuristic (Start Flask for Random Forest)',
+          model_ready: false,
+          mae: null,
+          rmse: null,
+          wape: null,
+          r2: null,
+          training_weeks: 12,
+          notes: ['Start Flask backend (`python backend/app.py`) to run the Random Forest Regressor and split-conformal intervals.']
+        },
+        policy: { lead_time_weeks: 1.0, safety_stock_weeks: 0.5, max_horizon_weeks: 12 }
+      },
+      stores: [
+        { store_id: 'S001', store_name: 'Main Market Store' },
+        { store_id: 'S002', store_name: 'Sector 14 Kirana' },
+        { store_id: 'S003', store_name: 'Station Road Mart' }
+      ],
+      weeks: [
+        '2026-09-06', '2026-09-13', '2026-09-20', '2026-09-27',
+        '2026-10-04', '2026-10-11', '2026-10-18', '2026-10-25',
+        '2026-11-01', '2026-11-08', '2026-11-15', '2026-11-22'
+      ],
+      products: [
+        { product_id: 'P0001', product_name: 'Basmati Rice 5kg', category: 'Groceries', unit_cost: 480, current_stock: 23, weekly_demand: [34, 36, 35, 38, 41, 39, 44, 46, 39, 40, 41, 40], movement_class: 'Fast-Moving', reliability_label: 'Moderate', reliability_message: 'Offline demo estimate.' },
+        { product_id: 'P0002', product_name: 'Sunflower Oil 1L', category: 'Groceries', unit_cost: 135, current_stock: 40, weekly_demand: [48, 50, 51, 53, 55, 58, 62, 60, 54, 56, 57, 57], movement_class: 'Fast-Moving', reliability_label: 'Moderate', reliability_message: 'Offline demo estimate.' },
+        { product_id: 'P0003', product_name: 'Amul Butter 500g', category: 'Dairy', unit_cost: 275, current_stock: 30, weekly_demand: [29, 31, 30, 32, 33, 35, 38, 39, 34, 35, 36, 35], movement_class: 'Moderate-Moving', reliability_label: 'Moderate', reliability_message: 'Offline demo estimate.' },
+        { product_id: 'P0004', product_name: 'Toor Dal 1kg', category: 'Groceries', unit_cost: 158, current_stock: 54, weekly_demand: [38, 39, 40, 41, 40, 43, 45, 44, 41, 42, 43, 42], movement_class: 'Moderate-Moving', reliability_label: 'Moderate', reliability_message: 'Offline demo estimate.' },
+        { product_id: 'P0005', product_name: 'Parle-G Family Pack', category: 'Packaged Foods', unit_cost: 72, current_stock: 158, weekly_demand: [52, 54, 53, 55, 57, 56, 60, 59, 57, 58, 59, 58], movement_class: 'Fast-Moving', reliability_label: 'Moderate', reliability_message: 'Offline demo estimate.' },
+        { product_id: 'P0006', product_name: 'Colgate Toothpaste 200g', category: 'Household', unit_cost: 128, current_stock: 91, weekly_demand: [11, 12, 11, 13, 12, 11, 12, 13, 12, 12, 11, 13], movement_class: 'Slow-Moving', reliability_label: 'Moderate', reliability_message: 'Offline demo estimate.' }
+      ],
+      recommendations: []
+    };
+
+    const APP_STATE = {
+      dataset: null,
+      metrics: null,
+      isDemo: true,
+      isBackendConnected: false,
+      activeView: 'upload',
+      selectedProductId: null,
+      forecastHorizon: 4,
+      leadTimeWeeks: 1.0,
+      safetyStockWeeks: 0.5,
+      stockFilters: { search: '', category: 'ALL', status: 'ALL', sortKey: 'daysLeft', sortDir: 'asc' }
+    };
+
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    const formatNumberIN = (v) => Number.isFinite(v) ? Math.round(v).toLocaleString('en-IN') : '0';
+    const formatCurrencyIN = (v) => Number.isFinite(v) ? '₹' + Math.round(v).toLocaleString('en-IN') : '—';
+    const formatDateDDMMYYYY = (iso) => {
+      if (!iso) return '—';
+      const p = String(iso).split('T')[0].split('-');
+      return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso;
+    };
+    const addDaysISO = (iso, days) => {
+      const [y, m, d] = iso.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      dt.setUTCDate(dt.getUTCDate() + days);
+      return dt.toISOString().split('T')[0];
+    };
+    const escapeHTML = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    const ICONS = {
+      home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/><path d="M9 21v-6h6v6"/></svg>`,
+      forecast: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+      stock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>`,
+      orders: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>`,
+      settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>`,
+      alertCircle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+      clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+      checkCircle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+      info: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+      download: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+      upload: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
+      search: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+      chevronRight: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
+      chevronDown: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`,
+      sortArrow: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 5 0 14"/><path d="m6 11 6-6 6 6"/></svg>`
+    };
+
+    function renderStatusBadge(statusKey) {
+      if (statusKey === 'order_now') return `<span class="badge badge-critical">${ICONS.alertCircle}Order now</span>`;
+      if (statusKey === 'order_soon') return `<span class="badge badge-warning">${ICONS.clock}Order soon</span>`;
+      if (statusKey === 'no_sales') return `<span class="badge badge-neutral">No recent sales</span>`;
+      if (statusKey === 'no_inv') return `<span class="badge badge-neutral">No inventory col</span>`;
+      return `<span class="badge badge-success">${ICONS.checkCircle}Enough stock</span>`;
+    }
+
+    function renderReliabilityBadge(label) {
+      if (label === 'Good') return `<span class="badge badge-success">Reliability: Good</span>`;
+      if (label === 'Low') return `<span class="badge badge-critical">Reliability: Low</span>`;
+      return `<span class="badge badge-warning">Reliability: Moderate</span>`;
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      document.getElementById('toastText').textContent = msg;
+      el.classList.remove('is-hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.add('is-hidden'), 3200);
+    }
+
+    function computeAnalytics(dataset) {
+      const weeks = dataset.weeks || [];
+      const weekCount = weeks.length;
+      const meta = dataset.meta || {};
+      const recMap = new Map((dataset.recommendations || []).map(r => [r.product_id, r]));
+      const hasInventoryData = meta.has_inventory_data !== false;
+      const policy = meta.policy || { lead_time_weeks: APP_STATE.leadTimeWeeks, safety_stock_weeks: APP_STATE.safetyStockWeeks };
+      const targetWeeks = Number(policy.lead_time_weeks ?? 1.0) + Number(policy.safety_stock_weeks ?? 0.5);
+
+      const products = (dataset.products || []).map(p => {
+        const series = (p.weekly_demand || []).map(v => Math.max(0, Number(v) || 0));
+        const avgWeeklyDemand = Number.isFinite(p.avg_weekly_demand)
+          ? p.avg_weekly_demand
+          : (series.length > 0 ? series.reduce((a, b) => a + b, 0) / series.length : 0);
+        const dailyDemand = avgWeeklyDemand / 7;
+        const currentStock = p.current_stock !== null && p.current_stock !== undefined ? Math.max(0, Math.round(Number(p.current_stock))) : null;
+        const unitCost = p.unit_cost !== null && p.unit_cost !== undefined ? Number(p.unit_cost) : null;
+        const rec = recMap.get(p.product_id);
+
+        const expectedWeekly = rec ? Number(rec.predicted_demand) : avgWeeklyDemand;
+        const expectedDaily = expectedWeekly / 7;
+
+        let daysLeft = null;
+        let hasSalesVelocity = expectedDaily > 0;
+        if (currentStock !== null) {
+          daysLeft = hasSalesVelocity ? Math.round(currentStock / expectedDaily) : (currentStock > 0 ? null : 0);
+        }
+
+        let healthBucket = 'healthy';
+        let statusKey = 'enough';
+        if (!hasInventoryData || currentStock === null) {
+          healthBucket = 'no_inv';
+          statusKey = 'no_inv';
+        } else if (!hasSalesVelocity && currentStock > 0) {
+          healthBucket = 'no_sales';
+          statusKey = 'no_sales';
+        } else if (daysLeft !== null && daysLeft <= THRESHOLDS.ORDER_NOW_DAYS) {
+          healthBucket = 'order_now';
+          statusKey = 'order_now';
+        } else if (daysLeft !== null && daysLeft <= THRESHOLDS.ORDER_SOON_DAYS) {
+          healthBucket = 'order_soon';
+          statusKey = 'order_soon';
+        } else if (daysLeft !== null && daysLeft > THRESHOLDS.EXCESS_DAYS) {
+          healthBucket = 'excess';
+          statusKey = 'enough';
+        }
+
+        // Exact replenishment formula matching backend/services/replenishment_service.py
+        let suggestedOrderQty = 0;
+        if (rec) {
+          suggestedOrderQty = Number(rec.suggested_order_quantity) || 0;
+        } else if (currentStock !== null && hasSalesVelocity) {
+          const targetStock = expectedWeekly * targetWeeks;
+          suggestedOrderQty = Math.max(0, Math.round(targetStock - currentStock));
+        }
+
+        const estimatedOrderCost = (unitCost !== null && suggestedOrderQty > 0) ? suggestedOrderQty * unitCost : null;
+        const stockValue = (unitCost !== null && currentStock !== null) ? currentStock * unitCost : null;
+        const weeksOfStock = (currentStock !== null && expectedWeekly > 0) ? (currentStock / expectedWeekly) : null;
+
+        let plainReason = rec?.explanation || '';
+        if (!plainReason && currentStock !== null) {
+          if (statusKey === 'order_now') {
+            plainReason = `Only ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} of stock left vs. expected demand. Suggested order: ${formatNumberIN(suggestedOrderQty)} units.`;
+          } else if (statusKey === 'order_soon') {
+            plainReason = `About ${daysLeft} days of stock left. Suggested order: ${formatNumberIN(suggestedOrderQty)} units.`;
+          }
+        }
+
+        return {
+          ...p,
+          currentStock,
+          unitCost,
+          weeklySeries: series,
+          avgWeeklyDemand,
+          expectedWeekly,
+          dailyDemand: expectedDaily,
+          daysLeft,
+          hasSalesVelocity,
+          healthBucket,
+          statusKey,
+          suggestedOrderQty,
+          estimatedOrderCost,
+          stockValue,
+          weeksOfStock,
+          plainReason,
+          assumptions: rec?.assumptions || `Assumes ${policy.lead_time_weeks}-week lead time + ${policy.safety_stock_weeks}-week safety buffer.`
+        };
+      });
+
+      const weeklyTotals = weeks.map((wk, idx) => ({
+        week: wk,
+        label: formatDateDDMMYYYY(wk),
+        total: products.reduce((sum, p) => sum + (p.weeklySeries[idx] || 0), 0)
+      }));
+
+      // Note: if last week is a partial boundary week, compute latest full-week delta accurately and label partial week
+      const latestWeeklyDemand = weeklyTotals.length > 0 ? weeklyTotals[weeklyTotals.length - 1].total : 0;
+      const priorWeeklyDemand = weeklyTotals.length > 1 ? weeklyTotals[weeklyTotals.length - 2].total : null;
+      const weeklyDeltaPct = (priorWeeklyDemand !== null && priorWeeklyDemand > 0)
+        ? ((latestWeeklyDemand - priorWeeklyDemand) / priorWeeklyDemand) * 100
+        : null;
+
+      const healthCounts = {
+        order_now: products.filter(p => p.healthBucket === 'order_now').length,
+        order_soon: products.filter(p => p.healthBucket === 'order_soon').length,
+        healthy: products.filter(p => p.healthBucket === 'healthy').length,
+        excess: products.filter(p => p.healthBucket === 'excess').length
+      };
+
+      const categoryMap = new Map();
+      products.forEach(p => {
+        if (!categoryMap.has(p.category)) categoryMap.set(p.category, { category: p.category, weeklyDemand: 0, currentStock: 0, count: 0 });
+        const e = categoryMap.get(p.category);
+        e.weeklyDemand += Math.round(p.avgWeeklyDemand);
+        e.currentStock += (p.currentStock ?? 0);
+        e.count += 1;
+      });
+      const categories = Array.from(categoryMap.values()).sort((a, b) => b.weeklyDemand - a.weeklyDemand);
+
+      const needsAttention = products
+        .filter(p => p.suggestedOrderQty > 0 || p.statusKey === 'order_now' || p.statusKey === 'order_soon')
+        .sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999) || b.suggestedOrderQty - a.suggestedOrderQty);
+
+      const excessProducts = products.filter(p => p.healthBucket === 'excess').sort((a, b) => (b.currentStock ?? 0) - (a.currentStock ?? 0));
+      const bestSellers = [...products].sort((a, b) => b.avgWeeklyDemand - a.avgWeeklyDemand);
+      const slowMovers = [...products].sort((a, b) => a.avgWeeklyDemand - b.avgWeeklyDemand);
+
+      const hasUnitCost = meta.has_unit_cost === true;
+      const totalEstimatedOrderSpend = hasUnitCost ? needsAttention.reduce((s, p) => s + (p.estimatedOrderCost || 0), 0) : null;
+      const totalExcessCapital = hasUnitCost ? excessProducts.reduce((s, p) => s + (p.stockValue || 0), 0) : null;
+
+      return {
+        products,
+        weeklyTotals,
+        weekCount,
+        totalProducts: products.length,
+        totalStores: (dataset.stores || []).length,
+        latestWeeklyDemand,
+        weeklyDeltaPct,
+        healthCounts,
+        categories,
+        needsAttention,
+        excessProducts,
+        bestSellers,
+        slowMovers,
+        totalEstimatedOrderSpend,
+        totalExcessCapital,
+        hasUnitCost,
+        hasInventoryData,
+        dateRange: weekCount > 0 ? `${formatDateDDMMYYYY(weeks[0])} – ${formatDateDDMMYYYY(weeks[weekCount - 1])}` : '—'
+      };
+    }
+
+    async function fetchOrComputeForecast(product, weeks, horizonWeeks) {
+      const safeHorizon = Math.max(1, Math.min(MAX_HORIZON_WEEKS, Math.round(Number(horizonWeeks) || 4)));
+
+      if (API_BASE.BASE_URL && APP_STATE.dataset?.dataset_id) {
+        const resp = await fetch(`${API_BASE.BASE_URL}${API_BASE.ENDPOINTS.FORECAST}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dataset_id: APP_STATE.dataset.dataset_id,
+            product_id: product.product_id,
+            horizon_weeks: safeHorizon
+          })
+        });
+        const json = await resp.json();
+        if (!resp.ok) throw new Error(json.message || 'Forecast request failed.');
+        return json;
+      }
+
+      // Offline heuristic fallback (explicitly labeled, zero fabricated ML intervals)
+      const history = product.weeklySeries || [];
+      const lastWeekISO = weeks.length > 0 ? weeks[weeks.length - 1] : '2026-11-22';
+      const recent = history.slice(-Math.min(4, history.length));
+      const baseDemand = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+      const forecast = [];
+      for (let step = 1; step <= safeHorizon; step++) {
+        const weekISO = addDaysISO(lastWeekISO, step * 7);
+        forecast.push({ step, week_ending: weekISO, predicted: Math.round(baseDemand), lower_bound: null, upper_bound: null });
+      }
+      return {
+        status: 'success',
+        product_id: product.product_id,
+        product_name: product.product_name,
+        horizon_weeks: safeHorizon,
+        engine: 'Offline Heuristic Demo (Start Flask for Random Forest)',
+        total_predicted: forecast.reduce((s, p) => s + p.predicted, 0),
+        has_calibrated_intervals: false,
+        reliability_label: product.reliability_label || 'Moderate',
+        reliability_message: product.reliability_message || 'Offline demo estimate.',
+        history: weeks.map((wk, idx) => ({ week_ending: wk, actual: history[idx] ?? 0 })),
+        forecast
+      };
+    }
+
+    /* =========================================================================
+       PLOTLY CHARTS
+       ========================================================================= */
+    const PLOTLY_CONFIG = {
+      responsive: true,
+      displayModeBar: 'hover',
+      displaylogo: false,
+      modeBarButtonsToRemove: ['lasso2d', 'select2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'pan2d', 'toggleSpikelines', 'hoverClosestCartesian', 'hoverCompareCartesian']
+    };
+
+    function basePlotlyLayout(overrides = {}) {
+      return {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { family: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', size: 12, color: '#64748B' },
+        margin: { l: 44, r: 16, t: 16, b: 36 },
+        hoverlabel: { bgcolor: '#FFFFFF', bordercolor: 'rgba(15, 23, 42, 0.16)', font: { family: 'Inter, sans-serif', size: 12, color: '#0F172A' }, align: 'left' },
+        xaxis: { showgrid: false, zeroline: false, linecolor: 'rgba(15, 23, 42, 0.08)', tickfont: { size: 11, color: '#64748B' }, automargin: true },
+        yaxis: { showgrid: true, gridcolor: '#EDF2F7', gridwidth: 1, zeroline: false, tickfont: { size: 11, color: '#64748B' }, automargin: true },
+        ...overrides
+      };
+    }
+
+    function renderHomeCharts(metrics) {
+      if (typeof Plotly === 'undefined') return;
+
+      const salesDates = metrics.weeklyTotals.map(w => w.label);
+      const salesVals = metrics.weeklyTotals.map(w => w.total);
+      Plotly.newPlot('chartSalesOverTime', [{
+        x: salesDates, y: salesVals, type: 'scatter',
+        mode: salesDates.length === 1 ? 'markers' : 'lines+markers',
+        line: { color: '#2563EB', width: 2.25 },
+        marker: { color: '#2563EB', size: 4 },
+        fill: 'tozeroy', fillcolor: 'rgba(37, 99, 235, 0.08)',
+        hovertemplate: '<b>Week ending %{x}</b><br>Total demand: %{y:,.0f} units<extra></extra>'
+      }], basePlotlyLayout({
+        margin: { l: 54, r: 16, t: 12, b: 42 },
+        xaxis: { showgrid: false, zeroline: false, linecolor: 'rgba(15,23,42,0.08)', tickfont: { size: 11, color: '#64748B' }, nticks: 6, automargin: true },
+        yaxis: { showgrid: true, gridcolor: '#EDF2F7', zeroline: false, rangemode: 'tozero', tickfont: { size: 11, color: '#64748B' }, automargin: true }
+      }), PLOTLY_CONFIG);
+
+      const hc = metrics.healthCounts;
+      Plotly.newPlot('chartStockHealth', [{
+        x: ['Order now', 'Order soon', 'Healthy', 'Excess'],
+        y: [hc.order_now, hc.order_soon, hc.healthy, hc.excess],
+        type: 'bar', width: 0.48,
+        marker: { color: ['#DC2626', '#D97706', '#16A34A', '#64748B'] },
+        hovertemplate: '<b>%{x}</b><br>%{y} products<extra></extra>'
+      }], basePlotlyLayout({
+        margin: { l: 40, r: 16, t: 12, b: 38 },
+        yaxis: { showgrid: true, gridcolor: '#EDF2F7', zeroline: false, dtick: Math.max(1, Math.ceil(Math.max(hc.order_now, hc.order_soon, hc.healthy, hc.excess, 2) / 4)), rangemode: 'tozero', tickfont: { size: 11, color: '#64748B' }, automargin: true }
+      }), PLOTLY_CONFIG);
+
+      const catNames = metrics.categories.map(c => c.category);
+      const catSales = metrics.categories.map(c => c.weeklyDemand);
+      Plotly.newPlot('chartSalesByCategory', [{
+        x: catNames, y: catSales, type: 'bar', width: 0.48, marker: { color: '#2563EB' },
+        hovertemplate: '<b>%{x}</b><br>Avg. weekly demand: %{y:,.0f} units<extra></extra>'
+      }], basePlotlyLayout({
+        margin: { l: 48, r: 16, t: 12, b: 54 },
+        xaxis: { showgrid: false, zeroline: false, linecolor: 'rgba(15,23,42,0.08)', tickfont: { size: 11, color: '#64748B' }, tickangle: catNames.length > 4 ? -14 : 0, automargin: true },
+        yaxis: { showgrid: true, gridcolor: '#EDF2F7', zeroline: false, rangemode: 'tozero', tickfont: { size: 11, color: '#64748B' }, automargin: true }
+      }), PLOTLY_CONFIG);
+
+      const topProducts = metrics.bestSellers.slice(0, 6).reverse();
+      Plotly.newPlot('chartBestSellers', [{
+        y: topProducts.map(p => p.product_name),
+        x: topProducts.map(p => Math.round(p.avgWeeklyDemand)),
+        type: 'bar', orientation: 'h', width: 0.56, marker: { color: '#2563EB' },
+        hovertemplate: '<b>%{y}</b><br>Avg. weekly demand: %{x:,.0f} units<extra></extra>'
+      }], basePlotlyLayout({
+        margin: { l: 120, r: 24, t: 10, b: 34 },
+        xaxis: { showgrid: true, gridcolor: '#EDF2F7', zeroline: false, rangemode: 'tozero', tickfont: { size: 11, color: '#64748B' }, automargin: true },
+        yaxis: { showgrid: false, zeroline: false, tickfont: { size: 11, color: '#475569' }, automargin: true }
+      }), PLOTLY_CONFIG);
+    }
+
+    function renderForecastChart(fc) {
+      if (typeof Plotly === 'undefined' || !fc) return;
+      const histSlice = fc.history.slice(-26); // Show recent 26 weeks for crisp chart readability
+      const actualX = histSlice.map(h => formatDateDDMMYYYY(h.week_ending));
+      const actualY = histSlice.map(h => h.actual);
+      const lastActual = histSlice[histSlice.length - 1];
+
+      const forecastX = [...(lastActual ? [formatDateDDMMYYYY(lastActual.week_ending)] : []), ...fc.forecast.map(f => formatDateDDMMYYYY(f.week_ending))];
+      const forecastY = [...(lastActual ? [lastActual.actual] : []), ...fc.forecast.map(f => f.predicted)];
+
+      const traces = [];
+      if (fc.has_calibrated_intervals) {
+        const bandX = fc.forecast.map(f => formatDateDDMMYYYY(f.week_ending));
+        const upperY = fc.forecast.map(f => f.upper_bound ?? f.predicted);
+        const lowerY = fc.forecast.map(f => f.lower_bound ?? f.predicted);
+        traces.push({
+          name: '80% range (upper)', x: bandX, y: upperY, type: 'scatter', mode: 'lines',
+          line: { width: 0 }, showlegend: false, hoverinfo: 'skip'
+        });
+        traces.push({
+          name: '80% calibrated range', x: bandX, y: lowerY, type: 'scatter', mode: 'lines',
+          fill: 'tonexty', fillcolor: 'rgba(37, 99, 235, 0.14)', line: { width: 0 },
+          hovertemplate: '<b>Week ending %{x}</b><br>Lower 80% bound: %{y:,.0f} units<extra></extra>'
+        });
+      }
+
+      traces.push({
+        name: 'Actual demand', x: actualX, y: actualY, type: 'scatter',
+        mode: actualX.length === 1 ? 'markers' : 'lines+markers',
+        line: { color: '#2563EB', width: 2.5 }, marker: { color: '#2563EB', size: 5 },
+        hovertemplate: '<b>Week ending %{x}</b><br>Actual: %{y:,.0f} units<extra></extra>'
+      });
+
+      traces.push({
+        name: 'Predicted demand', x: forecastX, y: forecastY, type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#1D4ED8', width: 2.25, dash: 'dash' }, marker: { color: '#60A5FA', size: 6 },
+        hovertemplate: '<b>Week ending %{x}</b><br>Forecast: ~%{y:,.0f} units<extra></extra>'
+      });
+
+      const shapes = [];
+      const annotations = [];
+      if (lastActual) {
+        const anchor = formatDateDDMMYYYY(lastActual.week_ending);
+        shapes.push({ type: 'line', x0: anchor, x1: anchor, y0: 0, y1: 1, yref: 'paper', line: { color: 'rgba(15,23,42,0.25)', width: 1.25, dash: 'dot' } });
+        annotations.push({ x: anchor, y: 1.06, yref: 'paper', text: 'Forecast starts', showarrow: false, xanchor: 'left', xshift: 6, font: { size: 11, color: '#64748B' } });
+      }
+
+      Plotly.newPlot('chartProductForecast', traces, basePlotlyLayout({
+        margin: { l: 54, r: 24, t: 36, b: 56 },
+        showlegend: true,
+        legend: { orientation: 'h', x: 0, y: -0.24, font: { size: 12, color: '#475569' } },
+        shapes, annotations,
+        xaxis: { showgrid: false, zeroline: false, linecolor: 'rgba(15,23,42,0.08)', tickfont: { size: 11, color: '#64748B' }, nticks: 8, automargin: true },
+        yaxis: { showgrid: true, gridcolor: '#EDF2F7', zeroline: false, rangemode: 'tozero', title: { text: 'Units per week', font: { size: 11, color: '#64748B' }, standoff: 10 }, tickfont: { size: 11, color: '#64748B' }, automargin: true }
+      }), PLOTLY_CONFIG);
+    }
+
+    function renderStockCategoryChart(metrics) {
+      if (typeof Plotly === 'undefined') return;
+      const cats = metrics.categories;
+      Plotly.newPlot('chartStockVsDemand', [
+        { name: 'Latest closing stock', x: cats.map(c => c.category), y: cats.map(c => c.currentStock), type: 'bar', marker: { color: '#CBD5E1' }, hovertemplate: '<b>%{x}</b><br>Closing stock: %{y:,.0f} units<extra></extra>' },
+        { name: 'Avg. weekly demand', x: cats.map(c => c.category), y: cats.map(c => c.weeklyDemand), type: 'bar', marker: { color: '#2563EB' }, hovertemplate: '<b>%{x}</b><br>Weekly demand: %{y:,.0f} units<extra></extra>' }
+      ], basePlotlyLayout({
+        barmode: 'group', bargap: 0.28, bargroupgap: 0.1, margin: { l: 52, r: 16, t: 16, b: 56 },
+        showlegend: true, legend: { orientation: 'h', x: 0, y: 1.12, font: { size: 12, color: '#475569' } },
+        yaxis: { showgrid: true, gridcolor: '#EDF2F7', zeroline: false, rangemode: 'tozero', tickfont: { size: 11, color: '#64748B' }, automargin: true }
+      }), PLOTLY_CONFIG);
+    }
+
+    /* =========================================================================
+       NAVIGATION & VIEWS
+       ========================================================================= */
+    const NAV_ITEMS = [
+      { id: 'home', label: 'Home', icon: ICONS.home },
+      { id: 'forecast', label: 'Future Sales', icon: ICONS.forecast },
+      { id: 'stock', label: 'My Stock', icon: ICONS.stock },
+      { id: 'orders', label: 'What to Order', icon: ICONS.orders }
+    ];
+
+    function renderNavigation() {
+      const urgentCount = APP_STATE.metrics ? APP_STATE.metrics.healthCounts.order_now : 0;
+      const makeItemHTML = (item) => {
+        const isActive = APP_STATE.activeView === item.id;
+        const badge = (item.id === 'orders' && urgentCount > 0) ? `<span class="nav-count" aria-label="${urgentCount} urgent items">${urgentCount}</span>` : '';
+        return `<li><button type="button" class="nav-btn ${isActive ? 'is-active' : ''}" data-nav="${item.id}" aria-current="${isActive ? 'page' : 'false'}">${item.icon}<span>${item.label}</span>${badge}</button></li>`;
+      };
+      const settingsItem = { id: 'settings', label: 'Settings', icon: ICONS.settings };
+      document.getElementById('desktopNavPrimary').innerHTML = NAV_ITEMS.map(makeItemHTML).join('');
+      document.getElementById('desktopNavBottom').innerHTML = makeItemHTML(settingsItem);
+      document.getElementById('mobileNavList').innerHTML = [...NAV_ITEMS, settingsItem].map(makeItemHTML).join('');
+    }
+
+    function renderHomeView() {
+      const m = APP_STATE.metrics;
+      const meta = APP_STATE.dataset.meta;
+      const criticalCount = m.healthCounts.order_now;
+      const soonCount = m.healthCounts.order_soon;
+
+      let bannerClass = 'surface-success', bannerIcon = `<span class="banner-icon text-success">${ICONS.checkCircle}</span>`;
+      let bannerText = 'All stock levels look healthy in the uploaded snapshot.';
+      let bannerSub = 'Every tracked product has more than two weeks of estimated cover.';
+      let bannerAction = '';
+
+      if (!m.hasInventoryData) {
+        bannerClass = 'surface-info';
+        bannerIcon = `<span class="banner-icon" style="color:var(--primary);">${ICONS.info}</span>`;
+        bannerText = 'Demand forecast is active. Inventory columns were not present in this CSV.';
+        bannerSub = 'Add Inventory Level and Units Sold columns to unlock stockout risk and reorder alerts.';
+      } else if (criticalCount > 0) {
+        bannerClass = 'surface-critical';
+        bannerIcon = `<span class="banner-icon text-critical">${ICONS.alertCircle}</span>`;
+        bannerText = `${criticalCount} ${criticalCount === 1 ? 'item' : 'items'} may run out soon based on the ${formatDateDDMMYYYY(meta.latest_snapshot_date)} snapshot.`;
+        bannerSub = soonCount > 0 ? `Another ${soonCount} items have 8–14 days of estimated cover.` : 'Indicative reorder suggestions are ready for review.';
+        bannerAction = `<button type="button" class="btn btn-primary btn-sm" data-nav="orders">Review order list</button>`;
+      } else if (soonCount > 0) {
+        bannerClass = 'surface-warning';
+        bannerIcon = `<span class="banner-icon text-warning">${ICONS.clock}</span>`;
+        bannerText = `No critical stockouts under 7 days, though ${soonCount} items need restocking soon.`;
+        bannerSub = 'Plan orders ahead to maintain your safety buffer.';
+        bannerAction = `<button type="button" class="btn btn-secondary btn-sm" data-nav="orders">View suggestions</button>`;
+      }
+
+      const partialTag = meta.has_partial_weeks ? ` <span class="text-muted">(final week ${meta.last_week_days}d partial)</span>` : '';
+      const deltaHTML = m.weeklyDeltaPct !== null
+        ? `<span class="${m.weeklyDeltaPct >= 0 ? 'delta-up' : 'delta-down'}">${m.weeklyDeltaPct >= 0 ? '+' : ''}${m.weeklyDeltaPct.toFixed(1)}%</span> <span class="text-muted">vs prior week</span>${partialTag}`
+        : `<span class="text-muted">Latest W-SUN week</span>`;
+
+      const topAttention = m.needsAttention.slice(0, 5);
+
+      return `
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">Inventory Overview</h1>
+            <p class="page-subtitle">Historical snapshot (${formatDateDDMMYYYY(meta.latest_snapshot_date)}) &amp; weekly demand across all stores.</p>
+          </div>
+          <div class="page-header-actions">
+            <span class="pill"><span class="pill-dot" aria-hidden="true"></span><span>${escapeHTML(meta.file_name)}</span><span class="text-muted">· ${m.weekCount} wks</span></span>
+            ${APP_STATE.isDemo ? `<span class="pill pill-demo">${meta.model_info?.model_ready ? 'Server Demo (RF)' : 'Offline Demo'}</span>` : ''}
+            <button type="button" class="btn btn-secondary btn-sm" id="homeReplaceDatasetBtn">${ICONS.upload} Replace dataset</button>
+          </div>
+        </header>
+
+        <div class="banner ${bannerClass}" role="region" aria-label="Inventory summary alert">
+          <div class="banner-left">${bannerIcon}<div><div class="banner-text">${bannerText}</div><div class="banner-sub">${bannerSub}</div></div></div>
+          ${bannerAction}
+        </div>
+
+        <section class="grid-kpi-4" aria-label="Key inventory metrics">
+          <div class="card kpi-card"><div class="eyebrow">Total Products</div><div class="kpi-value">${formatNumberIN(m.totalProducts)}</div><div class="kpi-meta"><span class="text-muted">Across ${formatNumberIN(m.categories.length)} categories</span></div></div>
+          <div class="card kpi-card"><div class="eyebrow">Total Stores</div><div class="kpi-value">${formatNumberIN(m.totalStores)}</div><div class="kpi-meta"><span class="text-muted">Aggregated per product</span></div></div>
+          <div class="card kpi-card"><div class="eyebrow">Latest Week Demand</div><div class="kpi-value">${formatNumberIN(m.latestWeeklyDemand)}</div><div class="kpi-meta">${deltaHTML}</div></div>
+          <div class="card kpi-card ${criticalCount > 0 ? 'surface-critical' : ''}">
+            <div class="eyebrow">Items at Risk</div>
+            <div class="kpi-value ${criticalCount > 0 ? 'text-critical' : ''}">${m.hasInventoryData ? formatNumberIN(criticalCount) : '—'}</div>
+            <div class="kpi-meta"><span class="${criticalCount > 0 ? 'text-critical' : 'text-muted'}" style="${criticalCount > 0 ? 'font-weight:500;' : ''}">${m.hasInventoryData ? (criticalCount > 0 ? 'Under 7 days cover' : 'None under 7 days') : 'No inventory column'}</span></div>
+          </div>
+        </section>
+
+        <section class="grid-2" aria-label="Sales and stock charts">
+          <div class="card chart-card"><div class="chart-header"><h2 class="card-title">Weekly demand over time</h2><p class="card-subtitle">Total demand per Sunday-ending week (W-SUN) across stores</p></div><div id="chartSalesOverTime" class="chart-box"></div></div>
+          <div class="card chart-card"><div class="chart-header"><h2 class="card-title">Stock health breakdown</h2><p class="card-subtitle">Products by estimated days of closing stock cover</p></div><div id="chartStockHealth" class="chart-box"></div></div>
+          <div class="card chart-card"><div class="chart-header"><h2 class="card-title">Demand by category</h2><p class="card-subtitle">Average weekly demand per product category</p></div><div id="chartSalesByCategory" class="chart-box"></div></div>
+          <div class="card chart-card"><div class="chart-header"><h2 class="card-title">Best-selling products</h2><p class="card-subtitle">Top items by average weekly demand</p></div><div id="chartBestSellers" class="chart-box"></div></div>
+        </section>
+
+        <section class="card" aria-label="Items needing attention">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div><h2 class="card-title">Needs attention</h2><p class="card-subtitle">Lowest stock-cover products. Click a row to open its multi-week forecast.</p></div>
+            ${m.needsAttention.length > 0 ? `<button type="button" class="btn-link" data-nav="orders">View all (${m.needsAttention.length}) →</button>` : ''}
+          </div>
+          ${topAttention.length === 0 ? `<div class="empty-state"><div class="empty-state-title">No urgent restocks flagged</div><p>No items need immediate ordering under current assumptions.</p></div>` : `
+            <div class="attention-list">
+              ${topAttention.map(p => `
+                <div class="attention-row" role="button" tabindex="0" data-open-forecast="${escapeHTML(p.product_id)}">
+                  <div><div class="row-product-name">${escapeHTML(p.product_name)}</div><div class="row-product-cat">${escapeHTML(p.category)} · ${escapeHTML(p.product_id)}</div></div>
+                  <div>${renderStatusBadge(p.statusKey)}</div>
+                  <div class="row-stat"><div class="row-stat-val ${p.statusKey === 'order_now' ? 'text-critical' : 'text-warning'}">${p.daysLeft !== null ? `${p.daysLeft}d` : '—'}</div><div class="row-stat-lbl">Cover</div></div>
+                  <div class="row-stat"><div class="row-stat-val">${p.currentStock !== null ? `${formatNumberIN(p.currentStock)} units` : '—'}</div><div class="row-stat-lbl">Closing stock</div></div>
+                  <div class="row-stat"><div class="row-stat-val" style="color:var(--primary);">+${formatNumberIN(p.suggestedOrderQty)} units</div><div class="row-stat-lbl">Suggested order</div></div>
+                  <div class="row-chevron text-muted" aria-hidden="true">${ICONS.chevronRight}</div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </section>
+      `;
+    }
+
+    function renderForecastViewShell() {
+      const products = APP_STATE.metrics.products;
+      if (!APP_STATE.selectedProductId || !products.some(p => p.product_id === APP_STATE.selectedProductId)) {
+        APP_STATE.selectedProductId = products[0]?.product_id || null;
+      }
+      const presets = [1, 2, 4, 8];
+      const h = APP_STATE.forecastHorizon;
+
+      return `
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">Future Sales</h1>
+            <p class="page-subtitle">Recursive weekly demand forecast (1–12 weeks ahead, W-SUN) with calibrated uncertainty intervals.</p>
+          </div>
+          <div class="page-header-actions">${APP_STATE.isDemo ? `<span class="pill pill-demo">${APP_STATE.dataset.meta.model_info?.model_ready ? 'Random Forest' : 'Offline Demo'}</span>` : ''}</div>
+        </header>
+
+        <section class="card forecast-controls" aria-label="Forecast settings">
+          <div class="control-group" style="flex:1;min-width:220px;max-width:320px;">
+            <label for="forecastProductSelect">Product</label>
+            <select id="forecastProductSelect" class="select">
+              ${products.map(p => `<option value="${escapeHTML(p.product_id)}" ${p.product_id === APP_STATE.selectedProductId ? 'selected' : ''}>${escapeHTML(p.product_name)} (${escapeHTML(p.category)})</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>Forecast horizon (1–12 weeks)</label>
+            <div class="horizon-row">
+              <div class="segmented" role="group" aria-label="Select preset weeks">
+                ${presets.map(wk => `<button type="button" class="segmented-btn ${h === wk ? 'is-active' : ''}" data-horizon="${wk}">${wk} ${wk === 1 ? 'week' : 'weeks'}</button>`).join('')}
+              </div>
+              <div class="custom-week-wrap">
+                <label for="customHorizonInput" style="font-size:13px;color:var(--ink-secondary);margin:0;">Custom:</label>
+                <input id="customHorizonInput" type="number" min="1" max="12" value="${h}" required aria-invalid="false" data-error="horizonErrorMsg" class="input custom-week-input" aria-label="Custom number of weeks (1 to 12)" />
+                <span>wks</span>
+              </div>
+            </div>
+            <span id="horizonErrorMsg" class="field-error-msg">Enter a whole number between 1 and 12 weeks.</span>
+          </div>
+
+          <div><button type="button" id="runForecastBtn" class="btn btn-primary">Generate forecast</button></div>
+        </section>
+
+        <section id="forecastAnswerCard" class="card answer-card" aria-live="polite"></section>
+
+        <section class="card chart-card" style="margin-bottom:24px;">
+          <div class="chart-header">
+            <h2 class="card-title">Recent actuals &amp; predicted weekly demand</h2>
+            <p class="card-subtitle">Solid blue shows actual weekly demand; dashed blue shows recursive forecast; shaded band (when calibrated) shows 80% split-conformal range, not a guarantee.</p>
+          </div>
+          <div id="chartProductForecast" class="chart-box-tall"></div>
+        </section>
+
+        <section class="card table-card" aria-label="Weekly forecast breakdown">
+          <div style="padding:18px 20px;border-bottom:1px solid var(--border-hairline);"><h2 class="card-title">Week-by-week forecast (W-SUN)</h2></div>
+          <div class="table-wrapper" tabindex="0" role="region" aria-label="Weekly forecast table">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Week ending</th>
+                  <th class="align-right">Predicted demand</th>
+                  <th class="align-right">Lower 80%</th>
+                  <th class="align-right">Upper 80%</th>
+                </tr>
+              </thead>
+              <tbody id="forecastTableBody"></tbody>
+              <tfoot id="forecastTableFoot"></tfoot>
+            </table>
+          </div>
+        </section>
+      `;
+    }
+
+    async function executeAndRenderForecast(showButtonLoading = false) {
+      const product = APP_STATE.metrics.products.find(p => p.product_id === APP_STATE.selectedProductId);
+      if (!product) return;
+
+      const btn = document.getElementById('runForecastBtn');
+      if (showButtonLoading && btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner" aria-hidden="true"></span> Generating...`;
+      }
+
+      try {
+        const result = await fetchOrComputeForecast(product, APP_STATE.dataset.weeks, APP_STATE.forecastHorizon);
+        if (btn) { btn.disabled = false; btn.textContent = 'Generate forecast'; }
+
+        const answerCard = document.getElementById('forecastAnswerCard');
+        if (answerCard) {
+          const wkWord = result.horizon_weeks === 1 ? 'week' : 'weeks';
+          const stockNote = product.currentStock !== null
+            ? (result.total_predicted - product.currentStock > 0
+              ? `Latest closing stock: <strong>${formatNumberIN(product.currentStock)} units</strong> — about <strong>${formatNumberIN(result.total_predicted - product.currentStock)} units below</strong> ${result.horizon_weeks}-${wkWord} expected demand.`
+              : `Latest closing stock: <strong>${formatNumberIN(product.currentStock)} units</strong>, covering expected demand for the next ${result.horizon_weeks} ${wkWord}.`)
+            : 'Upload Inventory Level data to compare forecast against stock on hand.';
+          const partialNote = APP_STATE.dataset.meta.has_partial_weeks
+            ? ` Note: the final observed week (${formatDateDDMMYYYY(APP_STATE.dataset.meta.week_end)}) had only ${APP_STATE.dataset.meta.last_week_days} operating days, which lowers lag-1 estimates.`
+            : '';
+
+          answerCard.innerHTML = `
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <span class="eyebrow">${escapeHTML(result.engine)}</span>
+                ${renderReliabilityBadge(result.reliability_label)}
+                ${result.historical_wape !== null && result.historical_wape !== undefined ? `<span class="pill">Hist. WAPE: ${result.historical_wape.toFixed(1)}%</span>` : ''}
+              </div>
+              <div class="answer-headline">
+                Expected demand: <span class="highlight-num">${formatNumberIN(result.total_predicted)} units</span> for ${escapeHTML(product.product_name)} over ${result.horizon_weeks} ${wkWord}.
+              </div>
+              <div class="answer-sub">${stockNote} ${escapeHTML(result.reliability_message)}${partialNote}</div>
+            </div>
+            <div><button type="button" id="downloadForecastCsvBtn" class="btn btn-secondary">${ICONS.download} Download CSV</button></div>
+          `;
+
+          document.getElementById('downloadForecastCsvBtn').addEventListener('click', () => {
+            downloadCSVFile(
+              `forecast_${product.product_id}_${result.horizon_weeks}w.csv`,
+              ['Product ID', 'Product Name', 'Week Ending', 'Predicted Demand', 'Lower 80%', 'Upper 80%'],
+              result.forecast.map(f => [product.product_id, product.product_name, f.week_ending, f.predicted, f.lower_bound ?? '', f.upper_bound ?? ''])
+            );
+            showToast(`Downloaded forecast CSV for ${product.product_name}`);
+          });
+        }
+
+        const tbody = document.getElementById('forecastTableBody');
+        const tfoot = document.getElementById('forecastTableFoot');
+        if (tbody && tfoot) {
+          tbody.innerHTML = result.forecast.map(f => `
+            <tr>
+              <td>${formatDateDDMMYYYY(f.week_ending)}</td>
+              <td class="align-right">${formatNumberIN(f.predicted)} units</td>
+              <td class="align-right text-muted">${f.lower_bound !== null ? `${formatNumberIN(f.lower_bound)}` : '—'}</td>
+              <td class="align-right text-muted">${f.upper_bound !== null ? `${formatNumberIN(f.upper_bound)}` : '—'}</td>
+            </tr>
+          `).join('');
+          tfoot.innerHTML = `
+            <tr>
+              <td>Total (${result.horizon_weeks} ${result.horizon_weeks === 1 ? 'week' : 'weeks'})</td>
+              <td class="align-right">${formatNumberIN(result.total_predicted)} units</td>
+              <td class="align-right"></td>
+              <td class="align-right"></td>
+            </tr>
+          `;
+        }
+
+        renderForecastChart(result);
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Generate forecast'; }
+        showToast(err.message || 'Unable to generate forecast.');
+      }
+    }
+
+    function renderStockView() {
+      const m = APP_STATE.metrics;
+      const f = APP_STATE.stockFilters;
+      const uniqueCategories = m.categories.map(c => c.category);
+      const fastMovers = m.bestSellers.slice(0, 4);
+      const slowMovers = m.slowMovers.slice(0, 4);
+      const lowStockItems = m.needsAttention.slice(0, 6);
+
+      return `
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">My Stock</h1>
+            <p class="page-subtitle">Latest closing stock (${formatDateDDMMYYYY(APP_STATE.dataset.meta.latest_snapshot_date)}), movement speed, and estimated days of cover.</p>
+          </div>
+        </header>
+
+        <div class="toolbar" role="region" aria-label="Filter stock table">
+          <div class="toolbar-left">
+            <div class="search-wrap">${ICONS.search}<input id="stockSearchInput" type="search" class="input" placeholder="Search product or category..." value="${escapeHTML(f.search)}" aria-label="Search products" /></div>
+            <select id="stockCategorySelect" class="select" aria-label="Filter by category">
+              <option value="ALL" ${f.category === 'ALL' ? 'selected' : ''}>All categories</option>
+              ${uniqueCategories.map(cat => `<option value="${escapeHTML(cat)}" ${f.category === cat ? 'selected' : ''}>${escapeHTML(cat)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="segmented" role="group" aria-label="Filter by stock status">
+            ${[{ id: 'ALL', label: 'All' }, { id: 'order_now', label: 'Order now' }, { id: 'order_soon', label: 'Order soon' }, { id: 'enough', label: 'Enough stock' }]
+              .map(tab => `<button type="button" class="segmented-btn ${f.status === tab.id ? 'is-active' : ''}" data-stock-status="${tab.id}">${tab.label}</button>`).join('')}
+          </div>
+        </div>
+
+        <section class="card table-card" aria-label="Inventory stock table">
+          <div id="stockTableRegion" class="table-wrapper" tabindex="0" role="region" aria-labelledby="stockTableCaption">
+            <table id="stockTable" class="data-table">
+              <caption id="stockTableCaption" class="visually-hidden">Inventory stock levels and estimated cover by product</caption>
+              <thead>
+                <tr>
+                  <th scope="col" data-type="text" data-col-key="product_name">
+                    <button type="button" commandfor="stockTable" command="--sort">Product <span class="sort-indicator">${ICONS.sortArrow}</span></button>
+                  </th>
+                  <th scope="col" data-type="text" data-col-key="category">
+                    <button type="button" commandfor="stockTable" command="--sort">Category <span class="sort-indicator">${ICONS.sortArrow}</span></button>
+                  </th>
+                  <th scope="col" class="align-right" data-type="number" data-col-key="currentStock">
+                    <button type="button" commandfor="stockTable" command="--sort">Closing stock <span class="sort-indicator">${ICONS.sortArrow}</span></button>
+                  </th>
+                  <th scope="col" class="align-right" data-type="number" data-col-key="avgWeeklyDemand">
+                    <button type="button" commandfor="stockTable" command="--sort">Avg. weekly demand <span class="sort-indicator">${ICONS.sortArrow}</span></button>
+                  </th>
+                  <th scope="col" class="align-right" data-type="number" data-col-key="daysLeft" aria-sort="ascending">
+                    <button type="button" commandfor="stockTable" command="--sort">Stock cover <span class="sort-indicator">${ICONS.sortArrow}</span></button>
+                  </th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody id="stockTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="grid-2" aria-label="Fast and slow moving products">
+          <div class="card card-compact">
+            <h2 class="card-title">Fast-moving products</h2><p class="card-subtitle">Highest average weekly demand</p>
+            <div class="mini-list">
+              ${fastMovers.map(p => `<div class="mini-list-item"><div><button type="button" class="product-link" data-open-forecast="${escapeHTML(p.product_id)}">${escapeHTML(p.product_name)}</button><div class="row-product-cat">${escapeHTML(p.category)}</div></div><div style="text-align:right;"><div class="row-stat-val">${formatNumberIN(p.avgWeeklyDemand)} / wk</div><div class="row-product-cat">${p.currentStock !== null ? `${formatNumberIN(p.currentStock)} in stock` : '—'}</div></div></div>`).join('')}
+            </div>
+          </div>
+          <div class="card card-compact">
+            <h2 class="card-title">Slow-moving products</h2><p class="card-subtitle">Lowest weekly turnover</p>
+            <div class="mini-list">
+              ${slowMovers.map(p => `<div class="mini-list-item"><div><button type="button" class="product-link" data-open-forecast="${escapeHTML(p.product_id)}">${escapeHTML(p.product_name)}</button><div class="row-product-cat">${escapeHTML(p.category)}</div></div><div style="text-align:right;"><div class="row-stat-val">${formatNumberIN(p.avgWeeklyDemand)} / wk</div><div class="row-product-cat">${p.daysLeft !== null ? `${p.daysLeft}d cover` : '—'}</div></div></div>`).join('')}
+            </div>
+          </div>
+        </section>
+
+        <section class="grid-2" aria-label="Category stock comparison and low stock list">
+          <div class="card chart-card"><div class="chart-header"><h2 class="card-title">Closing Stock vs. Weekly Demand</h2><p class="card-subtitle">Snapshot stock compared with average weekly demand by category</p></div><div id="chartStockVsDemand" class="chart-box"></div></div>
+          <div class="card card-compact">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <div><h2 class="card-title">Low stock quick list</h2><p class="card-subtitle">Items under 14 days estimated cover</p></div>
+              ${lowStockItems.length > 0 ? `<button type="button" class="btn-link" data-nav="orders" style="font-size:13px;">Order list →</button>` : ''}
+            </div>
+            ${lowStockItems.length === 0 ? `<div class="empty-state"><div class="empty-state-title">No low stock items</div></div>` : `
+              <div class="mini-list">${lowStockItems.map(p => `<div class="mini-list-item"><div><button type="button" class="product-link" data-open-forecast="${escapeHTML(p.product_id)}">${escapeHTML(p.product_name)}</button><div class="row-product-cat">${p.currentStock !== null ? `${formatNumberIN(p.currentStock)} units left` : '—'}</div></div><div style="display:flex;align-items:center;gap:10px;"><span class="num ${p.statusKey === 'order_now' ? 'text-critical' : 'text-warning'}" style="font-size:13px;font-weight:600;">${p.daysLeft !== null ? `${p.daysLeft}d` : '—'}</span>${renderStatusBadge(p.statusKey)}</div></div>`).join('')}</div>
+            `}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderStockTableRows() {
+      const tbody = document.getElementById('stockTableBody');
+      if (!tbody) return;
+      const f = APP_STATE.stockFilters;
+      const q = f.search.trim().toLowerCase();
+
+      let list = APP_STATE.metrics.products.filter(p => {
+        if (f.category !== 'ALL' && p.category !== f.category) return false;
+        if (f.status !== 'ALL' && p.statusKey !== f.status) return false;
+        if (q && !`${p.product_name} ${p.product_id} ${p.category}`.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      const dir = f.sortDir === 'asc' ? 1 : -1;
+      list.sort((a, b) => {
+        const av = a[f.sortKey], bv = b[f.sortKey];
+        if (typeof av === 'string') return collator.compare(av, bv) * dir;
+        return ((av ?? 999999) - (bv ?? 999999)) * dir;
+      });
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-title">No matching products found</div><button type="button" id="clearStockFiltersBtn" class="btn btn-secondary btn-sm" style="margin-top:8px;">Clear filters</button></div></td></tr>`;
+        document.getElementById('clearStockFiltersBtn')?.addEventListener('click', () => {
+          APP_STATE.stockFilters.search = ''; APP_STATE.stockFilters.category = 'ALL'; APP_STATE.stockFilters.status = 'ALL';
+          navigateTo('stock');
+        });
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => {
+        const dl = p.daysLeft ?? 999;
+        const pct = p.daysLeft !== null ? Math.min(100, Math.max(4, Math.round((Math.min(dl, 45) / 45) * 100))) : 0;
+        const barColor = p.statusKey === 'order_now' ? 'var(--critical)' : (p.statusKey === 'order_soon' ? 'var(--warning)' : (p.healthBucket === 'excess' ? '#64748B' : 'var(--success)'));
+        const daysLabel = p.daysLeft === null ? (p.currentStock === null ? '—' : 'No recent sales') : `${p.daysLeft} ${p.daysLeft === 1 ? 'day' : 'days'}${p.healthBucket === 'excess' ? ' (Excess)' : ''}`;
+
+        return `
+          <tr>
+            <th scope="row" data-value="${escapeHTML(p.product_name)}">
+              <button type="button" class="product-link" data-open-forecast="${escapeHTML(p.product_id)}">${escapeHTML(p.product_name)}</button>
+              <div class="row-product-cat">${escapeHTML(p.product_id)}</div>
+            </th>
+            <td data-value="${escapeHTML(p.category)}" style="color:var(--ink-secondary);">${escapeHTML(p.category)}</td>
+            <td class="align-right" data-value="${p.currentStock ?? -1}">${p.currentStock !== null ? formatNumberIN(p.currentStock) : '—'}</td>
+            <td class="align-right" data-value="${p.avgWeeklyDemand}">${formatNumberIN(p.avgWeeklyDemand)}</td>
+            <td class="align-right" data-value="${p.daysLeft ?? 999999}">
+              <div class="cover-cell">
+                <span style="font-size:13px;font-weight:500;color:${p.statusKey === 'order_now' ? 'var(--critical)' : 'var(--ink-primary)'};">${daysLabel}</span>
+                ${p.daysLeft !== null ? `<div class="cover-bar-track" aria-hidden="true"><div class="cover-bar-fill" style="width:${pct}%;background-color:${barColor};"></div></div>` : ''}
+              </div>
+            </td>
+            <td>${renderStatusBadge(p.statusKey)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Reorder existing <tr> nodes without rebuilding tbody (per modern-web-guidance sortable-table)
+    function sortStockTableDOM(button) {
+      const table = document.getElementById('stockTable');
+      const tbody = document.getElementById('stockTableBody');
+      if (!table || !tbody) return;
+      const th = button.closest('th');
+      const colKey = th.dataset.colKey;
+      const type = th.dataset.type || 'text';
+      const direction = th.getAttribute('aria-sort') === 'ascending' ? 'descending' : 'ascending';
+
+      for (const header of table.tHead.rows[0].cells) header.removeAttribute('aria-sort');
+      th.setAttribute('aria-sort', direction);
+      APP_STATE.stockFilters.sortKey = colKey;
+      APP_STATE.stockFilters.sortDir = direction === 'ascending' ? 'asc' : 'desc';
+
+      const rows = [...tbody.rows].filter(r => r.cells.length > 1);
+      const idx = th.cellIndex;
+      const factor = direction === 'ascending' ? 1 : -1;
+      rows.sort((a, b) => {
+        const va = a.cells[idx].dataset.value ?? a.cells[idx].textContent.trim();
+        const vb = b.cells[idx].dataset.value ?? b.cells[idx].textContent.trim();
+        return factor * (type === 'number' ? Number(va) - Number(vb) : collator.compare(va, vb));
+      });
+
+      const reorder = () => {
+        for (const row of rows) {
+          if (typeof tbody.moveBefore === 'function') tbody.moveBefore(row, null);
+          else tbody.appendChild(row);
+        }
+      };
+      if (typeof table.startViewTransition === 'function') table.startViewTransition(reorder);
+      else reorder();
+
+      document.getElementById('liveAnnouncer').textContent = `Sorted by ${button.textContent.trim()}, ${direction}, ${rows.length} rows`;
+    }
+
+    function renderOrdersView() {
+      const m = APP_STATE.metrics;
+      const meta = APP_STATE.dataset.meta;
+      const itemsToOrder = m.needsAttention;
+      const excessItems = m.excessProducts;
+      const policy = meta.policy || { lead_time_weeks: APP_STATE.leadTimeWeeks, safety_stock_weeks: APP_STATE.safetyStockWeeks };
+
+      return `
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">What to Order</h1>
+            <p class="page-subtitle">Indicative reorder quantities assuming ${policy.lead_time_weeks}-week lead time + ${policy.safety_stock_weeks}-week safety buffer.</p>
+          </div>
+          <div class="page-header-actions">
+            <button type="button" id="downloadOrderListBtn" class="btn btn-primary" ${itemsToOrder.length === 0 ? 'disabled' : ''}>${ICONS.download} Download order list (CSV)</button>
+          </div>
+        </header>
+
+        <div class="banner surface-info" role="note">
+          <div class="banner-left">
+            <span class="banner-icon" style="color:var(--primary);">${ICONS.info}</span>
+            <div class="banner-text" style="font-weight:400;">
+              Indicative decision support only based on historical snapshot (${formatDateDDMMYYYY(meta.latest_snapshot_date)}), assuming 0 confirmed incoming stock and no fixed MOQ. Adjust lead time in Settings.
+            </div>
+          </div>
+        </div>
+
+        <section class="grid-kpi-2" aria-label="Order summary">
+          <div class="card kpi-card">
+            <div class="eyebrow">Items to Order</div>
+            <div class="kpi-value">${formatNumberIN(itemsToOrder.length)}</div>
+            <div class="kpi-meta"><span class="text-critical" style="font-weight:500;">${m.healthCounts.order_now} critical (&le;7d)</span> <span class="text-muted">· ${m.healthCounts.order_soon} order soon</span></div>
+          </div>
+          <div class="card kpi-card">
+            <div class="eyebrow">Total Suggested Units</div>
+            <div class="kpi-value">${formatNumberIN(itemsToOrder.reduce((s, p) => s + p.suggestedOrderQty, 0))}</div>
+            <div class="kpi-meta"><span class="text-muted">${m.hasUnitCost ? `Est. wholesale spend: ${formatCurrencyIN(m.totalEstimatedOrderSpend)}` : 'Wholesale Unit Cost column not in CSV'}</span></div>
+          </div>
+        </section>
+
+        <section aria-label="Suggested order list">
+          <div style="margin-bottom:14px;"><h2 class="section-title">Priority restock suggestions</h2></div>
+          ${itemsToOrder.length === 0 ? `<div class="card empty-state" style="margin-bottom:32px;"><div class="empty-state-title">No reorders needed under current buffer</div></div>` : `
+            <div class="order-stack">
+              ${itemsToOrder.map(p => `
+                <article class="card order-card ${p.statusKey === 'order_now' ? 'surface-critical' : 'surface-warning'}">
+                  <div>
+                    <div class="order-card-head">
+                      <button type="button" class="product-link" style="font-size:15px;" data-open-forecast="${escapeHTML(p.product_id)}">${escapeHTML(p.product_name)}</button>
+                      ${renderStatusBadge(p.statusKey)}
+                    </div>
+                    <div class="order-reason">${escapeHTML(p.plainReason)}</div>
+                  </div>
+                  <div class="order-metric"><div class="order-metric-label">Cover left</div><div class="order-metric-val ${p.statusKey === 'order_now' ? 'text-critical' : 'text-warning'}">${p.daysLeft !== null ? `${p.daysLeft}d` : '—'}</div></div>
+                  <div class="order-metric"><div class="order-metric-label">Closing stock</div><div class="order-metric-val">${p.currentStock !== null ? `${formatNumberIN(p.currentStock)} units` : '—'}</div></div>
+                  <div class="order-metric"><div class="order-metric-label">Suggested order</div><div class="order-metric-val" style="color:var(--primary);">${formatNumberIN(p.suggestedOrderQty)} units</div></div>
+                  <div class="order-metric"><div class="order-metric-label">${m.hasUnitCost ? 'Est. cost' : 'Reliability'}</div><div class="order-metric-val">${m.hasUnitCost ? formatCurrencyIN(p.estimatedOrderCost) : escapeHTML(p.reliability_label || 'Moderate')}</div></div>
+                </article>
+              `).join('')}
+            </div>
+          `}
+        </section>
+
+        <section aria-label="Excess stock">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+            <div><h2 class="section-title">Excess stock (&gt; 45 days cover)</h2><p class="card-subtitle">Items with high inventory relative to expected demand.</p></div>
+            ${m.hasUnitCost && excessItems.length > 0 ? `<span class="pill">Capital tied up: <strong>${formatCurrencyIN(m.totalExcessCapital)}</strong></span>` : ''}
+          </div>
+          ${excessItems.length === 0 ? `<div class="card empty-state"><div class="empty-state-title">No excess stock detected</div></div>` : `
+            <div class="card table-card"><div class="table-wrapper" tabindex="0" role="region" aria-label="Excess stock table"><table class="data-table">
+              <thead><tr><th>Product</th><th>Category</th><th class="align-right">Closing stock</th><th class="align-right">Weeks of cover</th></tr></thead>
+              <tbody>${excessItems.map(p => `<tr><td><button type="button" class="product-link" data-open-forecast="${escapeHTML(p.product_id)}">${escapeHTML(p.product_name)}</button></td><td>${escapeHTML(p.category)}</td><td class="align-right">${formatNumberIN(p.currentStock)} units</td><td class="align-right">${p.weeksOfStock !== null ? `${p.weeksOfStock.toFixed(1)} wks` : '—'}</td></tr>`).join('')}</tbody>
+            </table></div></div>
+          `}
+        </section>
+      `;
+    }
+
+    function renderSettingsView() {
+      const m = APP_STATE.metrics;
+      const meta = APP_STATE.dataset.meta;
+      const model = meta.model_info || {};
+      const policy = meta.policy || { lead_time_weeks: APP_STATE.leadTimeWeeks, safety_stock_weeks: APP_STATE.safetyStockWeeks };
+
+      return `
+        <header class="page-header">
+          <div><h1 class="page-title">Settings &amp; Model Details</h1><p class="page-subtitle">Configure indicative reorder assumptions, inspect dataset metadata, and review verified model performance.</p></div>
+        </header>
+
+        <div class="settings-stack">
+          <section class="card" aria-label="Replenishment policy assumptions">
+            <h2 class="card-title">Indicative Replenishment Assumptions</h2>
+            <p class="card-subtitle">Since supplier lead times and pack sizes are not fixed in the CSV, configure your planning horizon here.</p>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;align-items:flex-end;">
+              <div class="control-group"><label for="policyLeadTime">Lead time (weeks)</label><input id="policyLeadTime" type="number" step="0.5" min="0" max="8" value="${policy.lead_time_weeks}" class="input" style="width:130px;" /></div>
+              <div class="control-group"><label for="policySafetyStock">Safety buffer (weeks)</label><input id="policySafetyStock" type="number" step="0.5" min="0" max="8" value="${policy.safety_stock_weeks}" class="input" style="width:130px;" /></div>
+              <button type="button" id="applyPolicyBtn" class="btn btn-primary" ${!APP_STATE.dataset?.dataset_id ? 'disabled title="Available when connected to Flask backend"' : ''}>Recalculate orders</button>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Dataset details">
+            <h2 class="card-title">Dataset Details</h2>
+            <div class="kv-list">
+              <div class="kv-row"><span class="kv-key">File name</span><span class="kv-val">${escapeHTML(meta.file_name)}</span></div>
+              <div class="kv-row"><span class="kv-key">Date range (W-SUN)</span><span class="kv-val">${m.dateRange} (${m.weekCount} weeks)</span></div>
+              <div class="kv-row"><span class="kv-key">Records loaded</span><span class="kv-val">${formatNumberIN(meta.total_rows)} rows · ${formatNumberIN(m.totalProducts)} products · ${formatNumberIN(m.totalStores)} stores</span></div>
+              <div class="kv-row"><span class="kv-key">Closing stock semantics</span><span class="kv-val">${meta.verified_opening_stock_semantics ? 'Verified: Inventory Level - Units Sold' : 'Latest Inventory Level'}</span></div>
+              <div class="kv-row"><span class="kv-key">Partial boundary weeks</span><span class="kv-val">${meta.has_partial_weeks ? `Yes (First: ${meta.first_week_days}d, Last: ${meta.last_week_days}d)` : 'No'}</span></div>
+            </div>
+            <div class="settings-actions">
+              <button type="button" id="settingsReplaceBtn" class="btn btn-secondary">${ICONS.upload} Replace dataset</button>
+              <button type="button" id="settingsResetBtn" class="btn btn-danger-outline">Reset dashboard</button>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Model performance details">
+            <details class="model-details" open>
+              <summary>
+                <div><div class="card-title">Model &amp; Evaluation Summary</div><div class="card-subtitle">Verified chronological 80/20 evaluation metrics (never hardcoded)</div></div>
+                <span class="chevron-icon" aria-hidden="true">${ICONS.chevronDown}</span>
+              </summary>
+              <div class="metric-explain-grid">
+                <div class="metric-explain-box">
+                  <div class="metric-explain-top"><span class="eyebrow">Algorithm</span></div>
+                  <div class="metric-explain-val" style="font-size:15px;">${escapeHTML(model.algorithm || 'N/A')}</div>
+                  <p class="metric-explain-desc">${model.model_ready ? `Evaluated on ${model.evaluated_rows} chronological test rows (${model.test_weeks} weeks).` : (model.notes?.[0] || 'Insufficient weeks for ML evaluation.')}</p>
+                </div>
+                <div class="metric-explain-box">
+                  <div class="metric-explain-top"><span class="eyebrow">MAE / WAPE</span><span class="metric-explain-val">${model.mae !== null ? `${model.mae.toFixed(1)} (${model.wape}%)` : '—'}</span></div>
+                  <p class="metric-explain-desc">Average absolute error across all eligible test rows (including boundary partial weeks).</p>
+                </div>
+                <div class="metric-explain-box">
+                  <div class="metric-explain-top"><span class="eyebrow">RMSE / R²</span><span class="metric-explain-val">${model.rmse !== null ? `${model.rmse.toFixed(1)} / ${model.r2}` : '—'}</span></div>
+                  <p class="metric-explain-desc">Negative R² occurs when partial boundary weeks create sharp drops vs full-week training lags.</p>
+                </div>
+                <div class="metric-explain-box">
+                  <div class="metric-explain-top"><span class="eyebrow">80% Conformal Interval</span><span class="metric-explain-val">${model.conformal_1w_half_width !== null ? `±${model.conformal_1w_half_width}` : 'Deferred'}</span></div>
+                  <p class="metric-explain-desc">${model.conformal_1w_empirical_coverage !== null ? `Measured held-out coverage: ${model.conformal_1w_empirical_coverage}% (calibrated on validation slice).` : 'Requires >= 20 training weeks for validation calibration.'}</p>
+                </div>
+              </div>
+            </details>
+          </section>
+        </div>
+      `;
+    }
+
+    function loadDatasetAndEnterApp(dataset, isDemo) {
+      APP_STATE.dataset = dataset;
+      APP_STATE.isDemo = isDemo;
+      APP_STATE.metrics = computeAnalytics(dataset);
+      APP_STATE.selectedProductId = APP_STATE.metrics.products[0]?.product_id || null;
+      APP_STATE.forecastHorizon = 4;
+      APP_STATE.stockFilters = { search: '', category: 'ALL', status: 'ALL', sortKey: 'daysLeft', sortDir: 'asc' };
+
+      document.getElementById('uploadView').classList.add('is-hidden');
+      document.getElementById('appShell').classList.remove('is-hidden');
+      navigateTo('home');
+    }
+
+    function openUploadScreen() {
+      APP_STATE.activeView = 'upload';
+      document.getElementById('appShell').classList.add('is-hidden');
+      document.getElementById('uploadView').classList.remove('is-hidden');
+      resetUploadUIState();
+      window.scrollTo({ top: 0 });
+    }
+
+    function navigateTo(viewId, options = {}) {
+      if (!APP_STATE.dataset) { openUploadScreen(); return; }
+      if (options.productId) APP_STATE.selectedProductId = options.productId;
+      APP_STATE.activeView = viewId;
+      renderNavigation();
+
+      const drawer = document.getElementById('mobileDrawer');
+      const toggle = document.getElementById('mobileMenuToggle');
+      if (drawer && toggle) { drawer.classList.remove('is-open'); toggle.setAttribute('aria-expanded', 'false'); }
+
+      const main = document.getElementById('mainContent');
+      window.scrollTo({ top: 0 });
+
+      if (viewId === 'home') { main.innerHTML = renderHomeView(); renderHomeCharts(APP_STATE.metrics); bindHomeEvents(); }
+      else if (viewId === 'forecast') { main.innerHTML = renderForecastViewShell(); bindForecastEvents(); executeAndRenderForecast(false); }
+      else if (viewId === 'stock') { main.innerHTML = renderStockView(); renderStockTableRows(); renderStockCategoryChart(APP_STATE.metrics); bindStockEvents(); }
+      else if (viewId === 'orders') { main.innerHTML = renderOrdersView(); bindOrdersEvents(); }
+      else if (viewId === 'settings') { main.innerHTML = renderSettingsView(); bindSettingsEvents(); }
+    }
+
+    function bindHomeEvents() {
+      document.getElementById('homeReplaceDatasetBtn')?.addEventListener('click', openUploadScreen);
+    }
+
+    function syncHorizonAria(inputEl, announce = false) {
+      if (!inputEl) return true;
+      const val = Number(inputEl.value);
+      const isValid = Number.isInteger(val) && val >= 1 && val <= MAX_HORIZON_WEEKS;
+      const errSpan = document.getElementById('horizonErrorMsg');
+      inputEl.setAttribute('aria-invalid', isValid ? 'false' : 'true');
+      if (isValid) {
+        inputEl.removeAttribute('aria-describedby');
+        errSpan?.classList.remove('is-shown');
+      } else {
+        inputEl.setAttribute('aria-describedby', 'horizonErrorMsg');
+        errSpan?.classList.add('is-shown');
+        if (announce && errSpan) {
+          document.getElementById('liveAnnouncer').textContent = errSpan.textContent;
+        }
+      }
+      return isValid;
+    }
+
+    function bindForecastEvents() {
+      const select = document.getElementById('forecastProductSelect');
+      const customInput = document.getElementById('customHorizonInput');
+      const runBtn = document.getElementById('runForecastBtn');
+
+      select?.addEventListener('change', (e) => {
+        APP_STATE.selectedProductId = e.target.value;
+        executeAndRenderForecast(false);
+      });
+
+      document.querySelectorAll('[data-horizon]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const wks = Number(btn.getAttribute('data-horizon'));
+          APP_STATE.forecastHorizon = wks;
+          if (customInput) { customInput.value = wks; syncHorizonAria(customInput); }
+          document.querySelectorAll('[data-horizon]').forEach(b => b.classList.remove('is-active'));
+          btn.classList.add('is-active');
+          executeAndRenderForecast(false);
+        });
+      });
+
+      customInput?.addEventListener('input', () => {
+        if (syncHorizonAria(customInput)) {
+          const val = Number(customInput.value);
+          APP_STATE.forecastHorizon = val;
+          document.querySelectorAll('[data-horizon]').forEach(b => b.classList.toggle('is-active', Number(b.getAttribute('data-horizon')) === val));
+        }
+      });
+      customInput?.addEventListener('blur', () => syncHorizonAria(customInput, true));
+
+      runBtn?.addEventListener('click', () => {
+        if (customInput && !syncHorizonAria(customInput, true)) { customInput.focus(); return; }
+        APP_STATE.forecastHorizon = Number(customInput?.value || 4);
+        executeAndRenderForecast(true);
+      });
+    }
+
+    function bindStockEvents() {
+      document.getElementById('stockSearchInput')?.addEventListener('input', (e) => {
+        APP_STATE.stockFilters.search = e.target.value;
+        renderStockTableRows();
+      });
+      document.getElementById('stockCategorySelect')?.addEventListener('change', (e) => {
+        APP_STATE.stockFilters.category = e.target.value;
+        renderStockTableRows();
+      });
+      document.querySelectorAll('[data-stock-status]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          APP_STATE.stockFilters.status = btn.getAttribute('data-stock-status');
+          document.querySelectorAll('[data-stock-status]').forEach(b => b.classList.remove('is-active'));
+          btn.classList.add('is-active');
+          renderStockTableRows();
+        });
+      });
+
+      const table = document.getElementById('stockTable');
+      if (table) {
+        table.addEventListener('command', (event) => {
+          if (event.command === '--sort') sortStockTableDOM(event.source);
+        });
+        if (!('commandForElement' in HTMLButtonElement.prototype)) {
+          table.tHead.querySelectorAll('button[command="--sort"]').forEach(button => {
+            button.addEventListener('click', () => sortStockTableDOM(button));
+          });
+        }
+      }
+    }
+
+    function bindOrdersEvents() {
+      document.getElementById('downloadOrderListBtn')?.addEventListener('click', () => {
+        const items = APP_STATE.metrics.needsAttention;
+        downloadCSVFile(
+          `smartventory_order_list_${APP_STATE.dataset.meta.uploaded_at}.csv`,
+          ['Status', 'Product ID', 'Product Name', 'Category', 'Closing Stock', 'Cover Days', 'Suggested Order Qty', 'Assumptions'],
+          items.map(p => [p.stock_status, p.product_id, p.product_name, p.category, p.currentStock ?? '', p.daysLeft ?? '', p.suggestedOrderQty, p.assumptions])
+        );
+        showToast('Order list CSV downloaded');
+      });
+    }
+
+    function bindSettingsEvents() {
+      document.getElementById('settingsReplaceBtn')?.addEventListener('click', openUploadScreen);
+      const dialog = document.getElementById('resetDialog');
+      document.getElementById('settingsResetBtn')?.addEventListener('click', () => {
+        if (typeof dialog?.showModal === 'function') dialog.showModal();
+        else { APP_STATE.dataset = null; APP_STATE.metrics = null; openUploadScreen(); }
+      });
+
+      document.getElementById('applyPolicyBtn')?.addEventListener('click', async () => {
+        const lt = Number(document.getElementById('policyLeadTime').value);
+        const ss = Number(document.getElementById('policySafetyStock').value);
+        if (lt < 0 || ss < 0 || Number.isNaN(lt) || Number.isNaN(ss)) { showToast('Lead time and safety buffer must be >= 0.'); return; }
+        try {
+          const resp = await fetch(`${API_BASE.BASE_URL}${API_BASE.ENDPOINTS.RECOMMENDATIONS}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dataset_id: APP_STATE.dataset.dataset_id, lead_time_weeks: lt, safety_stock_weeks: ss })
+          });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.message || 'Could not update policy.');
+          APP_STATE.dataset.recommendations = data.recommendations;
+          APP_STATE.dataset.meta.policy = { ...APP_STATE.dataset.meta.policy, ...data.policy };
+          APP_STATE.metrics = computeAnalytics(APP_STATE.dataset);
+          renderNavigation();
+          showToast('Updated reorder suggestions with new lead time & buffer');
+        } catch (err) {
+          showToast(err.message);
+        }
+      });
+    }
+
+    function downloadCSVFile(filename, headers, rows) {
+      const esc = (val) => /[",\n\r]/.test(String(val ?? '')) ? `"${String(val ?? '').replace(/"/g, '""')}"` : String(val ?? '');
+      const csv = [headers.map(esc).join(','), ...rows.map(r => r.map(esc).join(','))].join('\r\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+
+    function buildSampleCSVAndDownload() {
+      const headers = ['Date', 'Store ID', 'Product ID', 'Product Name', 'Category', 'Inventory Level', 'Units Sold', 'Demand', 'Unit Cost'];
+      const rows = [];
+      const wks = OFFLINE_DEMO.weeks.slice(-4);
+      OFFLINE_DEMO.products.slice(0, 4).forEach(p => {
+        const dem = p.weekly_demand.slice(-4);
+        wks.forEach((wk, i) => {
+          rows.push([wk, 'S001', p.product_id, p.product_name, p.category, Math.max(10, p.current_stock), Math.min(10, dem[i]), dem[i], p.unit_cost]);
+        });
+      });
+      downloadCSVFile('smartventory_sample.csv', headers, rows);
+      showToast('Sample CSV downloaded');
+    }
+
+    function resetUploadUIState() {
+      document.getElementById('uploadErrorBox').classList.add('is-hidden');
+      document.getElementById('uploadErrorMsg').textContent = '';
+      document.getElementById('uploadProgressWrap').classList.add('is-hidden');
+      document.getElementById('uploadProgressFill').style.width = '0%';
+      document.getElementById('csvFileInput').value = '';
+    }
+
+    function showUploadError(msg) {
+      document.getElementById('uploadProgressWrap').classList.add('is-hidden');
+      document.getElementById('uploadErrorMsg').textContent = msg;
+      document.getElementById('uploadErrorBox').classList.remove('is-hidden');
+    }
+
+    async function handleCSVFileSelected(file) {
+      if (!file) return;
+      resetUploadUIState();
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        showUploadError('Unsupported file type. Please select a .csv file.');
+        return;
+      }
+
+      const wrap = document.getElementById('uploadProgressWrap');
+      const fill = document.getElementById('uploadProgressFill');
+      const label = document.getElementById('uploadProgressLabel');
+      const pct = document.getElementById('uploadProgressPct');
+      wrap.classList.remove('is-hidden');
+      label.textContent = `Uploading & running pipeline for ${file.name}...`;
+      fill.style.width = '35%'; pct.textContent = '35%';
+
+      try {
+        if (!API_BASE.BASE_URL) {
+          throw new Error('Flask backend is not connected (opened via file://). Start the server with `python backend/app.py` and open http://127.0.0.1:5000.');
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        const resp = await fetch(`${API_BASE.BASE_URL}${API_BASE.ENDPOINTS.ANALYZE}`, { method: 'POST', body: formData });
+        fill.style.width = '85%'; pct.textContent = '85%';
+
+        const payload = await resp.json();
+        if (!resp.ok) {
+          const extra = payload.details?.missing_columns ? ` Missing: ${payload.details.missing_columns.join(', ')}` : '';
+          throw new Error((payload.message || 'CSV validation failed.') + extra);
+        }
+
+        fill.style.width = '100%'; pct.textContent = '100%';
+        loadDatasetAndEnterApp(payload, false);
+        showToast(`Processed ${file.name} (${formatNumberIN(payload.meta.total_rows)} rows)`);
+      } catch (err) {
+        showUploadError(err.message || 'Failed to upload and analyze CSV.');
+      }
+    }
+
+    async function handleUseDemoClick() {
+      resetUploadUIState();
+      if (API_BASE.BASE_URL) {
+        const wrap = document.getElementById('uploadProgressWrap');
+        const fill = document.getElementById('uploadProgressFill');
+        const label = document.getElementById('uploadProgressLabel');
+        const pct = document.getElementById('uploadProgressPct');
+        wrap.classList.remove('is-hidden');
+        label.textContent = 'Running Random Forest & inventory pipeline on sales_data.csv...';
+        fill.style.width = '45%'; pct.textContent = '45%';
+        try {
+          const resp = await fetch(`${API_BASE.BASE_URL}${API_BASE.ENDPOINTS.ANALYZE}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ use_demo: true })
+          });
+          const payload = await resp.json();
+          if (!resp.ok) throw new Error(payload.message || 'Could not load server demo data.');
+          fill.style.width = '100%'; pct.textContent = '100%';
+          loadDatasetAndEnterApp(payload, true);
+          showToast('Loaded server demo dataset (sales_data.csv)');
+          return;
+        } catch (err) {
+          showUploadError(err.message);
+          return;
+        }
+      }
+      loadDatasetAndEnterApp(structuredClone(OFFLINE_DEMO), true);
+    }
+
+    function initApp() {
+      const dropzone = document.getElementById('csvDropzone');
+      const fileInput = document.getElementById('csvFileInput');
+      document.getElementById('browseCsvBtn').addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+      dropzone.addEventListener('click', () => fileInput.click());
+      dropzone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+      fileInput.addEventListener('change', (e) => { if (e.target.files?.[0]) handleCSVFileSelected(e.target.files[0]); });
+
+      ['dragenter', 'dragover'].forEach(ev => dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.add('is-dragover'); }));
+      ['dragleave', 'drop'].forEach(ev => dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.remove('is-dragover'); }));
+      dropzone.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) handleCSVFileSelected(f); });
+
+      document.getElementById('useDemoBtn').addEventListener('click', handleUseDemoClick);
+      document.getElementById('downloadSampleCsvBtn').addEventListener('click', buildSampleCSVAndDownload);
+
+      const mobileToggle = document.getElementById('mobileMenuToggle');
+      const mobileDrawer = document.getElementById('mobileDrawer');
+      mobileToggle.addEventListener('click', () => {
+        const open = mobileDrawer.classList.toggle('is-open');
+        mobileToggle.setAttribute('aria-expanded', String(open));
+      });
+
+      const resetDialog = document.getElementById('resetDialog');
+      resetDialog.addEventListener('close', () => {
+        const action = resetDialog.returnValue;
+        resetDialog.returnValue = '';
+        if (action === 'confirm') {
+          APP_STATE.dataset = null; APP_STATE.metrics = null;
+          openUploadScreen();
+          showToast('Dashboard reset');
+        }
+      });
+
+      // Progressive-enhancement fallback for closedby="any" where unsupported
+      if (!('closedBy' in HTMLDialogElement.prototype)) {
+        const outside = (e, d) => {
+          const r = d.getBoundingClientRect();
+          return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+        };
+        let pressedOutside = false;
+        resetDialog.addEventListener('pointerdown', (e) => { pressedOutside = outside(e, resetDialog); });
+        resetDialog.addEventListener('pointerup', (e) => { if (pressedOutside && outside(e, resetDialog)) resetDialog.close(); });
+      }
+
+      document.addEventListener('click', (e) => {
+        const nav = e.target.closest('[data-nav]');
+        if (nav) { e.preventDefault(); navigateTo(nav.getAttribute('data-nav')); return; }
+        const fc = e.target.closest('[data-open-forecast]');
+        if (fc) navigateTo('forecast', { productId: fc.getAttribute('data-open-forecast') });
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          const row = e.target.closest('.attention-row[data-open-forecast]');
+          if (row) { e.preventDefault(); navigateTo('forecast', { productId: row.getAttribute('data-open-forecast') }); }
+        }
+      });
+
+      let resizeTimer = null;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          if (typeof Plotly !== 'undefined') document.querySelectorAll('.js-plotly-plot').forEach(el => Plotly.Plots.resize(el));
+        }, 120);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>

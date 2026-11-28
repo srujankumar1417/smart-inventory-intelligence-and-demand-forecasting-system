@@ -41,6 +41,45 @@ def aggregate_weekly_demand(
     return weekly_df
 
 
+def inspect_weekly_continuity(
+    weekly_df: pd.DataFrame,
+    raw_df: pd.DataFrame | None = None
+) -> Dict[str, Any]:
+    """
+    Verify product-week uniqueness, detect missing weekly gaps without zero-filling,
+    and disclose boundary partial weeks if raw daily dates are provided.
+    """
+    unique_weeks = sorted(weekly_df["Week_Ending"].unique())
+    duplicate_keys = int(weekly_df.duplicated(subset=["Product ID", "Week_Ending"]).sum())
+
+    products_with_gaps: List[str] = []
+    for pid, group in weekly_df.groupby("Product ID"):
+        if group["Week_Ending"].tolist() != unique_weeks:
+            products_with_gaps.append(str(pid))
+
+    first_week_days = None
+    last_week_days = None
+    if raw_df is not None and len(unique_weeks) >= 2:
+        dates = pd.to_datetime(raw_df["Date"])
+        first_week_days = int(dates[dates <= unique_weeks[0]].nunique())
+        last_week_days = int(
+            dates[(dates > unique_weeks[-2]) & (dates <= unique_weeks[-1])].nunique()
+        )
+
+    return {
+        "row_count": int(len(weekly_df)),
+        "unique_products": int(weekly_df["Product ID"].nunique()),
+        "unique_weeks": int(len(unique_weeks)),
+        "week_start": unique_weeks[0].strftime("%Y-%m-%d") if unique_weeks else None,
+        "week_end": unique_weeks[-1].strftime("%Y-%m-%d") if unique_weeks else None,
+        "duplicate_product_weeks": duplicate_keys,
+        "products_with_gaps": products_with_gaps,
+        "has_gaps": len(products_with_gaps) > 0,
+        "first_week_days": first_week_days,
+        "last_week_days": last_week_days,
+    }
+
+
 def build_processing_summary(
     original_df: pd.DataFrame,
     processed_df: pd.DataFrame,

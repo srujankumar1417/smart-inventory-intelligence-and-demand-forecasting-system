@@ -1,8 +1,14 @@
 import os
+import sys
 from flask import Flask
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from backend.config import Config
 from backend.routes.upload_routes import upload_bp
+from backend.routes.analysis_routes import analysis_bp
 from backend.utils.error_handlers import register_error_handlers
 
 
@@ -18,6 +24,7 @@ def create_app(config_class=Config) -> Flask:
 
     # Register route blueprints
     app.register_blueprint(upload_bp)
+    app.register_blueprint(analysis_bp)
 
     return app
 

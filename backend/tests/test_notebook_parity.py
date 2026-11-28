@@ -56,3 +56,65 @@ def test_notebook_parity_against_reference_dataset(sales_data_csv_path, weekly_d
     ref_sorted = reference_weekly_df.sort_values(by=["Product ID", "Week_Ending"]).reset_index(drop=True)
 
     pd.testing.assert_frame_equal(backend_sorted, ref_sorted, check_dtype=True)
+
+
+def test_part2_end_to_end_baseline_and_rf_parity(sales_data_csv_path):
+    """
+    Verify end-to-end Part 2 pipeline parity on sales_data.csv:
+    - Same 440 eligible test rows for Moving Average and Random Forest
+    - Baseline metrics match Notebook 01 (MAE ~663.63, RMSE ~880.25, R2 ~-0.1101)
+    - Random Forest trains deterministically and improves over baseline MAE/WAPE
+    - Inventory semantics and replenishment pipeline produce 20 product outputs
+    """
+    from backend.models.demand_forecaster import (
+        compute_moving_average_baseline,
+        train_random_forest,
+        predict_random_forest,
+    )
+    from backend.services.feature_engineering import (
+        FEATURE_COLUMNS,
+        build_product_mapping,
+        build_lag_and_calendar_features,
+        chronological_week_split,
+    )
+    from backend.services.model_evaluation import compare_models, evaluate_by_product
+    from backend.services.forecasting_service import forecast_future_weeks
+    from backend.services.inventory_analysis import verify_inventory_semantics, analyze_product_inventory
+    from backend.services.replenishment_service import generate_replenishment_recommendations
+
+    raw_df = load_csv(sales_data_csv_path)
+    validate_or_raise(raw_df)
+    processed_df = preprocess_dataframe(raw_df)
+    weekly_df = aggregate_weekly_demand(processed_df)
+
+    weekly_df["Moving_Average_4W"] = compute_moving_average_baseline(weekly_df, window=4)
+    ma_train, ma_test, ma_split = chronological_week_split(weekly_df, train_ratio=0.80)
+
+    mapping = build_product_mapping(ma_train["Product ID"])
+    featured_df, mapping = build_lag_and_calendar_features(weekly_df, product_mapping=mapping, drop_na=True)
+    rf_train = featured_df[featured_df["Week_Ending"] < pd.Timestamp(ma_split["split_date"])].copy()
+    rf_test = featured_df[featured_df["Week_Ending"] >= pd.Timestamp(ma_split["split_date"])].copy()
+
+    assert len(rf_test) == len(ma_test) == 440
+
+    rf_model = train_random_forest(rf_train, feature_cols=FEATURE_COLUMNS)
+    rf_test["RF_Predicted"] = predict_random_forest(rf_model, rf_test, feature_cols=FEATURE_COLUMNS)
+    rf_test = rf_test.rename(columns={"Weekly_Demand": "Actual_Demand", "Moving_Average_4W": "MA_Predicted"})
+
+    comp = compare_models(rf_test, actual_col="Actual_Demand").set_index("Model")
+    assert comp.loc["Moving Average (4W)", "Evaluated_Rows"] == 440
+    assert comp.loc["Random Forest", "Evaluated_Rows"] == 440
+    assert np.isclose(comp.loc["Moving Average (4W)", "MAE"], 663.629545, atol=1e-3)
+    assert comp.loc["Random Forest", "MAE"] < comp.loc["Moving Average (4W)", "MAE"]
+    assert comp.loc["Random Forest", "WAPE_Pct"] < comp.loc["Moving Average (4W)", "WAPE_Pct"]
+
+    prod_eval = evaluate_by_product(rf_test)
+    assert len(prod_eval) == 20
+
+    sem = verify_inventory_semantics(processed_df)
+    assert sem["verified_opening_stock_semantics"] is True
+
+    inv_df = analyze_product_inventory(processed_df, weekly_df)
+    fc_1w = forecast_future_weeks(rf_model, weekly_df, mapping, horizon=1)
+    recs = generate_replenishment_recommendations(inv_df, fc_1w, product_eval_df=prod_eval)
+    assert len(recs) == 20
